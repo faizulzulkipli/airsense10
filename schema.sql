@@ -48,12 +48,30 @@ create table if not exists public.sessions (
   press_max        numeric(5,2),
   resp_rate_50     numeric(5,1),
   min_vent_50      numeric(5,1),
-  series           jsonb,                      -- per-minute pressure/leak: {"t":[],"p":[],"l":[]}
+  oa_count         int,                        -- event counts from the EVE file (null = no event file imported)
+  ca_count         int,
+  h_count          int,
+  ua_count         int,
+  rera_count       int,
+  csr_minutes      numeric(7,1),               -- Cheyne-Stokes respiration minutes (CSL file)
+  stats            jsonb,                      -- per-signal min/p50/p90/p95/max/avg computed from full-resolution (2 s) data
+  settings         jsonb,                      -- device settings that night (Mode, EPR, pressure range, ramp ...)
+  series           jsonb,                      -- per-minute curves: {"t":[min since noon],"mp":[],"epr":[],"tp":[],"lk":[],"rr":[],"tv":[],"mv":[],"sn":[],"fl":[]}
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
   unique (patient_id, session_date)
 );
 create index if not exists sessions_patient_date_idx on public.sessions(patient_id, session_date);
+
+-- Upgrade path: safe to run on a database created with the first version of this schema
+alter table public.sessions add column if not exists oa_count   int;
+alter table public.sessions add column if not exists ca_count   int;
+alter table public.sessions add column if not exists h_count    int;
+alter table public.sessions add column if not exists ua_count   int;
+alter table public.sessions add column if not exists rera_count int;
+alter table public.sessions add column if not exists csr_minutes numeric(7,1);
+alter table public.sessions add column if not exists stats      jsonb;
+alter table public.sessions add column if not exists settings   jsonb;
 
 -- ---------------------------------------------------------------------
 -- 3. Events (apneas, hypopneas, arousals) from the *_EVE.edf files

@@ -27,6 +27,7 @@ button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line
 button.danger{background:var(--bad);color:#fff}
 button:disabled{opacity:.5;cursor:not-allowed}
 input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input[type=range]{padding:0;border:0;background:transparent}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
 .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;width:100%;max-width:420px}
@@ -34,13 +35,13 @@ label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .top .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .top select{width:auto;min-width:180px}
 nav{display:flex;gap:4px;padding:8px 20px 0;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto}
-nav button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;border-bottom:3px solid transparent;padding:10px 14px}
+nav button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;border-bottom:3px solid transparent;padding:10px 14px;white-space:nowrap}
 nav button.active{color:var(--ink);border-bottom-color:var(--brand)}
-main{padding:20px;max-width:1200px;margin:0 auto}
+main{padding:20px;max-width:1280px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.kpi .v{font-size:24px;font-weight:700}
+.kpi .v{font-size:22px;font-weight:700}
 .kpi .l{font-size:12px;color:var(--muted)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:800px){.grid2{grid-template-columns:1fr}}
@@ -48,7 +49,7 @@ main{padding:20px;max-width:1200px;margin:0 auto}
 .row{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
 .row>div{flex:1;min-width:140px}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 th{font-size:12px;color:var(--muted);font-weight:600}
 td.num,th.num{text-align:right}
 .tablewrap{overflow-x:auto}
@@ -62,6 +63,16 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
 .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
 .log{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:180px;overflow:auto;white-space:pre-wrap}
 .link{background:none;color:var(--brand);padding:0;font-weight:500;text-decoration:underline}
+.stackrow{border-top:1px solid var(--line);padding:4px 0}
+.stackrow:first-child{border-top:0}
+.stacktitle{font-size:12px;color:var(--muted);font-weight:600;margin:6px 0 0 2px}
+.dayctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dayctl input[type=date]{width:auto}
+.dayctl select{width:auto}
+.dayctl .grow{flex:1;min-width:160px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--muted);font-size:14px}
 @media print{
   body{background:#fff;color:#000}
   .top,nav,.noprint,#tabs{display:none!important}
@@ -116,21 +127,22 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
     </div>
   </header>
   <nav id="tabs">
-    <button data-tab="dashboard" class="active">Dashboard</button>
-    <button data-tab="nights">Nights</button>
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="daily">Daily</button>
+    <button data-tab="stats">Statistics</button>
     <button data-tab="import">Import SD card</button>
     <button data-tab="report">Report</button>
     <button data-tab="patients">Patients</button>
   </nav>
 
   <main>
-    <!-- Dashboard -->
-    <section id="tab-dashboard" class="tab">
+    <!-- Overview -->
+    <section id="tab-overview" class="tab">
       <div class="card noprint">
         <div class="row">
           <div style="max-width:220px">
             <label>Period</label>
-            <select id="dashRange">
+            <select id="ovRange">
               <option value="30">Last 30 nights</option>
               <option value="90" selected>Last 90 nights</option>
               <option value="180">Last 180 nights</option>
@@ -140,29 +152,49 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
           </div>
         </div>
       </div>
-      <div id="dashEmpty" class="msg info hidden">No data yet for this patient. Go to <b>Import SD card</b> to load the machine's data.</div>
-      <div id="dashBody">
-        <div class="kpis" id="dashKpis"></div>
+      <div id="ovEmpty" class="msg info hidden">No data yet for this patient. Go to <b>Import SD card</b> to load the machine's data.</div>
+      <div id="ovBody">
+        <div class="kpis" id="ovKpis"></div>
         <div class="grid2">
-          <div class="card"><h3 style="margin-top:0">Usage per night (hours)</h3><div class="chartbox"><canvas id="chUsage"></canvas></div></div>
-          <div class="card"><h3 style="margin-top:0">AHI (events/hour)</h3><div class="chartbox"><canvas id="chAhi"></canvas></div></div>
-          <div class="card"><h3 style="margin-top:0">Leak, 95th percentile (L/min)</h3><div class="chartbox"><canvas id="chLeak"></canvas></div></div>
-          <div class="card"><h3 style="margin-top:0">Pressure (cmH₂O)</h3><div class="chartbox"><canvas id="chPress"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Usage per night (hours)</h3><div class="chartbox"><canvas id="ovUsage"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Events per hour (by type)</h3><div class="chartbox"><canvas id="ovAhi"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Mask pressure (cmH₂O)</h3><div class="chartbox"><canvas id="ovPress"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Leak (L/min)</h3><div class="chartbox"><canvas id="ovLeak"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Respiratory rate, median (breaths/min)</h3><div class="chartbox"><canvas id="ovRr"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Tidal volume, median (mL)</h3><div class="chartbox"><canvas id="ovTv"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Minute ventilation, median (L/min)</h3><div class="chartbox"><canvas id="ovMv"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Snore index and flow limitation (average)</h3><div class="chartbox"><canvas id="ovSnFl"></canvas></div></div>
         </div>
       </div>
     </section>
 
-    <!-- Nights -->
-    <section id="tab-nights" class="tab hidden">
+    <!-- Daily -->
+    <section id="tab-daily" class="tab hidden">
+      <div class="card noprint">
+        <div class="dayctl">
+          <button class="ghost" id="dayPrev" aria-label="Previous night">&larr;</button>
+          <input type="date" id="dayDate">
+          <button class="ghost" id="dayNext" aria-label="Next night">&rarr;</button>
+          <span class="muted" id="dayNote"></span>
+        </div>
+      </div>
+      <div id="dayBody"></div>
+    </section>
+
+    <!-- Statistics -->
+    <section id="tab-stats" class="tab hidden">
+      <div class="card">
+        <h2>Statistics</h2>
+        <div class="tablewrap"><table id="statsTable"></table></div>
+      </div>
       <div class="card">
         <div class="row noprint" style="margin-bottom:10px">
           <h2 style="margin:0;flex:2">Nightly records</h2>
           <div style="flex:0 0 auto"><button class="ghost" id="btnCsv">Export CSV</button></div>
         </div>
-        <div class="tablewrap"><table id="nightsTable"></table></div>
-        <p class="muted" style="font-size:13px">Click a night to see its pressure/leak curve and events.</p>
+        <div class="tablewrap" style="max-height:520px;overflow:auto"><table id="nightsTable"></table></div>
+        <p class="muted" style="font-size:13px">Click a night to open it in the Daily view.</p>
       </div>
-      <div id="nightDetail"></div>
     </section>
 
     <!-- Import -->
@@ -174,7 +206,7 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
           <li>Choose the <b>whole SD card folder</b> (the one containing <code>STR.edf</code> and <code>DATALOG</code>).</li>
           <li>Check the preview, then press <b>Save to Supabase</b>.</li>
         </ol>
-        <p class="muted" style="font-size:13px">Files are read inside your browser. Only the parsed results (nightly numbers, per-minute curves, events) are uploaded.</p>
+        <p class="muted" style="font-size:13px">Files are read inside your browser. Only the summarised results (nightly statistics, per-minute curves, events, device settings) are uploaded. The raw .edf files are not.</p>
         <label>Patient</label>
         <select id="impPatient"></select>
         <label>SD card folder</label>
@@ -235,10 +267,13 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
 
 <script>
 // =====================================================================
-// SETTINGS: you may paste your Supabase values here, or leave blank and
-// the app will ask for them on first run (stored in this browser only).
+// SETTINGS: values normally come from config.js (written by build.js on Render),
+// or from the first-run screen (stored in this browser only).
 // =====================================================================
 const CONFIG = Object.assign({ SUPABASE_URL: '', SUPABASE_ANON_KEY: '' }, window.APP_CONFIG || {});
+// Resolution of the per-minute curves stored in the database (minutes per point).
+// 1 = ~20-30 KB per night. Use 2 or 5 to make the database smaller.
+const SERIES_STEP = 1;
 
 // ==PARSER START==
 // ---------- date helpers (UTC arithmetic only, so no timezone/DST surprises) ----------
@@ -250,6 +285,7 @@ function fmtTs(ms) {
 }
 const fmtDate = ms => fmtTs(ms).slice(0, 10);
 const DAY_MS = 86400000;
+const roundTo = (x, d) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
 
 // ---------- generic EDF / EDF+ reader ----------
 function parseEDF(buf) {
@@ -291,7 +327,7 @@ function parseEDF(buf) {
   return { start, recDur, nrec, sigs };
 }
 
-// ---------- STR.edf: one record per therapy day ----------
+// ---------- STR.edf: one record per therapy day (summary + device settings) ----------
 function parseSTR(buf) {
   const e = parseEDF(buf);
   const norm = s => s.toLowerCase().replace(/\s+/g, '');
@@ -304,12 +340,13 @@ function parseSTR(buf) {
     p50: get(/^maskpress\.50$/, /^maskpress.*(50|med)/), p95: get(/^maskpress\.95$/, /^maskpress.*95/), pmax: get(/^maskpress\.max$/, /^maskpress.*max/),
     rr: get(/^resprate\.50$/, /^resprate.*(50|med)/), mv: get(/^minvent\.50$/, /^minvent.*(50|med)/)
   };
+  const setSigs = e.sigs.filter(s => !s.ann && (/^s\./i.test(s.label) || /^mode$/i.test(s.label)));
   const v = (sig, r) => { if (!sig) return null; const x = sig.vals[r * sig.spr]; return (x === undefined || x < 0 || isNaN(x)) ? null : x; };
   // ResMed stores leak in L/s; convert to L/min (heuristic guard in case a firmware already uses L/min)
   let maxLeak = 0;
   for (let r = 0; r < e.nrec; r++) { const x = v(S.lmax, r); if (x !== null && x > maxLeak) maxLeak = x; }
   const leakK = maxLeak > 0 && maxLeak < 5 ? 60 : 1;
-  const rnd = (x, d) => x === null ? null : Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
+  const rnd = (x, d) => x === null ? null : roundTo(x, d);
   const days = [];
   for (let r = 0; r < e.nrec; r++) {
     const base = startMs(e.start) + r * DAY_MS;
@@ -319,6 +356,8 @@ function parseSTR(buf) {
       if (a >= 0 && b > a) periods.push([a, b]);
     }
     const usage = periods.reduce((t, [a, b]) => t + (b - a), 0);
+    const settings = {};
+    for (const s of setSigs) { const x = s.vals[r * s.spr]; if (x !== undefined && !isNaN(x) && x >= 0) settings[s.label] = roundTo(x, 2); }
     days.push({
       _r: r, session_date: fmtDate(base), noonMs: Date.UTC(...fmtDate(base).split('-').map((x, i) => i === 1 ? Number(x) - 1 : Number(x)), 12),
       first_on: periods.length ? fmtTs(base + Math.min(...periods.map(p => p[0])) * 60000) : null,
@@ -331,7 +370,9 @@ function parseSTR(buf) {
       leak_max: rnd(v(S.lmax, r) === null ? null : v(S.lmax, r) * leakK, 2),
       press_50: rnd(v(S.p50, r), 2), press_95: rnd(v(S.p95, r), 2), press_max: rnd(v(S.pmax, r), 2),
       resp_rate_50: rnd(v(S.rr, r), 1), min_vent_50: rnd(v(S.mv, r), 1),
-      series: null, events: []
+      settings: periods.length ? settings : null,
+      oa_count: null, ca_count: null, h_count: null, ua_count: null, rera_count: null, csr_minutes: null,
+      hasEve: false, series: null, stats: null, events: []
     });
   }
   // Keep days between the first and last night that was actually used (zero-use days inside that span are kept)
@@ -350,36 +391,96 @@ function detailInfo(name) {
   return { kind: m[7].toUpperCase(), ms, day: fmtDate(ms - 12 * 3600000) };
 }
 
-// ---------- PLD: pressure/leak, reduced to one point per minute ----------
+// ---------- PLD: the 2-second signals OSCAR draws (pressure, EPR, leak, resp rate, volumes, snore, flow limitation) ----------
+// k = multiplier to the unit we store, nz = zero means "no data", d = decimals kept in the per-minute curve
+const PLD_SIGS = {
+  mp:  { re: /^maskpress/, k: 1,    nz: true,  d: 2 },   // mask pressure, cmH2O
+  epr: { re: /^eprpress/,  k: 1,    nz: true,  d: 2 },   // EPR pressure, cmH2O
+  tp:  { re: /^press\./,   k: 1,    nz: true,  d: 2 },   // target (therapy) pressure, cmH2O
+  lk:  { re: /^leak/,      k: 60,   nz: false, d: 1 },   // leak, L/s -> L/min
+  rr:  { re: /^resprate/,  k: 1,    nz: true,  d: 1 },   // breaths/min
+  tv:  { re: /^tidvol/,    k: 1000, nz: true,  d: 0 },   // tidal volume, L -> mL
+  mv:  { re: /^minvent/,   k: 1,    nz: true,  d: 1 },   // minute ventilation, L/min
+  sn:  { re: /^snore/,     k: 1,    nz: false, d: 2 },   // snore index
+  fl:  { re: /^flowlim/,   k: 1,    nz: false, d: 2 }    // flow limitation 0..1
+};
 function parsePLD(buf, fileMs, noonMs) {
-  const e = parseEDF(buf);
-  const pick = re => e.sigs.find(s => !s.ann && re.test(s.label.toLowerCase()));
-  const pr = pick(/^maskpress/) || pick(/^press/), lk = pick(/^leak/);
-  const buckets = new Map();
-  const add = (sig, kind) => {
-    if (!sig) return;
-    const step = e.recDur / sig.spr, offs = (fileMs - noonMs) / 1000;
-    for (let i = 0; i < sig.vals.length; i++) {
-      const x = sig.vals[i];
-      if (isNaN(x) || x < 0 || (kind === 'p' && x === 0)) continue;
-      const min = Math.floor((offs + i * step) / 60);
-      let b = buckets.get(min); if (!b) { b = { ps: 0, pn: 0, ls: 0, ln: 0 }; buckets.set(min, b); }
-      if (kind === 'p') { b.ps += x; b.pn++; } else { b.ls += x * 60; b.ln++; }
+  const e = parseEDF(buf), out = {}, offs = (fileMs - noonMs) / 1000;
+  for (const [key, c] of Object.entries(PLD_SIGS)) {
+    const s = e.sigs.find(s => !s.ann && c.re.test(s.label.toLowerCase()));
+    if (!s) continue;
+    let k = c.k;
+    if (key === 'lk' || key === 'tv') {
+      let mx = 0; for (const x of s.vals) if (x > mx) mx = x;
+      if (key === 'lk' && mx > 8) k = 1;     // already L/min
+      if (key === 'tv' && mx > 20) k = 1;    // already mL
     }
-  };
-  add(pr, 'p'); add(lk, 'l');
-  return [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([m, b]) => [m, b.pn ? b.ps / b.pn : null, b.ln ? b.ls / b.ln : null]);
+    const vals = new Float64Array(s.vals.length);
+    for (let i = 0; i < vals.length; i++) { const x = s.vals[i]; vals[i] = (isNaN(x) || x < 0 || (c.nz && x === 0)) ? NaN : x * k; }
+    out[key] = { step: e.recDur / s.spr, offs, vals };
+  }
+  return out;
+}
+// Collect one night: all raw values (for exact percentiles) and per-minute buckets (for the curves)
+function accPLD(acc, sigs) {
+  for (const [key, s] of Object.entries(sigs)) {
+    const a = acc[key] || (acc[key] = { mins: new Map(), vals: [] });
+    for (let i = 0; i < s.vals.length; i++) {
+      const v = s.vals[i]; if (v !== v) continue;
+      a.vals.push(v);
+      const m = Math.floor((s.offs + i * s.step) / 60);
+      const b = a.mins.get(m); if (b) { b[0] += v; b[1]++; } else a.mins.set(m, [v, 1]);
+    }
+  }
+}
+function quantile(sorted, q) {
+  const i = (sorted.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+// -> { series: {t:[min since noon], mp:[..], ...}, stats: {mp:{min,p50,p90,p95,max,avg}, ...} }
+function finishAcc(acc, step) {
+  step = step || 1;
+  const keys = Object.keys(acc);
+  if (!keys.length) return { series: null, stats: null };
+  const tset = new Set();
+  for (const k of keys) for (const m of acc[k].mins.keys()) tset.add(Math.floor(m / step) * step);
+  const t = [...tset].sort((a, b) => a - b), idx = new Map(t.map((m, i) => [m, i]));
+  const series = { t }, stats = {};
+  for (const k of keys) {
+    const d = PLD_SIGS[k].d, sum = new Array(t.length).fill(0), cnt = new Array(t.length).fill(0), arr = new Array(t.length).fill(null);
+    for (const [m, [s, n]] of acc[k].mins) { const i = idx.get(Math.floor(m / step) * step); sum[i] += s; cnt[i] += n; }
+    for (let i = 0; i < t.length; i++) if (cnt[i]) arr[i] = roundTo(sum[i] / cnt[i], d);
+    series[k] = arr;
+    const v = Float64Array.from(acc[k].vals).sort();
+    if (v.length) {
+      let tot = 0; for (const x of v) tot += x;
+      stats[k] = { min: roundTo(v[0], d + 1), p50: roundTo(quantile(v, .5), d + 1), p90: roundTo(quantile(v, .9), d + 1), p95: roundTo(quantile(v, .95), d + 1), max: roundTo(v[v.length - 1], d + 1), avg: roundTo(tot / v.length, d + 1) };
+    }
+  }
+  return { series, stats };
 }
 
-// ---------- EVE: EDF+ annotations -> events ----------
+// ---------- EVE / CSL: EDF+ annotations -> events ----------
 function classifyEvent(t) {
   t = t.toLowerCase();
   if (t.includes('obstructive')) return 'Obstructive Apnea';
   if (t.includes('central')) return 'Central Apnea';
   if (t.includes('hypopnea')) return 'Hypopnea';
-  if (t.includes('apnea')) return 'Apnea';
-  if (t.includes('arousal')) return 'Arousal';
+  if (t.includes('apnea')) return 'Unclassified Apnea';
+  if (t.includes('arousal') || t.includes('rera')) return 'RERA';
+  if (t.includes('csr') || t.includes('cheyne')) return 'Cheyne-Stokes';
   return null;
+}
+function eventKind(t) {
+  switch (t) {
+    case 'Obstructive Apnea': return 'OA';
+    case 'Central Apnea': return 'CA';
+    case 'Hypopnea': return 'H';
+    case 'Unclassified Apnea': case 'Apnea': return 'UA';
+    case 'RERA': case 'Arousal': return 'RERA';
+    case 'Cheyne-Stokes': return 'CSR';
+    default: return null;
+  }
 }
 function parseEVE(buf, fileMs, noonMs) {
   const e = parseEDF(buf), ann = e.sigs.find(s => s.ann), out = [];
@@ -391,31 +492,16 @@ function parseEVE(buf, fileMs, noonMs) {
       if (!m) continue;
       for (const t of m[3].split('\x14').map(s => s.trim()).filter(Boolean)) {
         const type = classifyEvent(t);
-        if (type) out.push({ event_type: type, onset_sec: Math.round((offs + parseFloat(m[1])) * 10) / 10, duration_sec: m[2] ? parseFloat(m[2]) : 0 });
+        if (type) out.push({ event_type: type, onset_sec: roundTo(offs + parseFloat(m[1]), 1), duration_sec: m[2] ? parseFloat(m[2]) : 0 });
       }
     }
   }
   return out;
 }
-
-// merge per-minute points from several PLD files into one series object
-// Summarised to one point per `step` minutes (default 5) so a night costs only a few KB in the database.
-function buildSeries(points, step = 5) {
-  const b = new Map();
-  for (const [m, pp, ll] of points) {
-    const k = Math.floor(m / step) * step;
-    let x = b.get(k); if (!x) { x = { ps: 0, pn: 0, ls: 0, ln: 0 }; b.set(k, x); }
-    if (pp !== null) { x.ps += pp; x.pn++; }
-    if (ll !== null) { x.ls += ll; x.ln++; }
-  }
-  const keys = [...b.keys()].sort((a, c) => a - c), t = [], p = [], l = [];
-  for (const k of keys) {
-    const x = b.get(k);
-    t.push(k);
-    p.push(x.pn ? Math.round(x.ps / x.pn * 10) / 10 : null);
-    l.push(x.ln ? Math.round(x.ls / x.ln * 10) / 10 : null);
-  }
-  return t.length ? { t, p, l } : null;
+function countEvents(n) {
+  const c = { OA: 0, CA: 0, H: 0, UA: 0, RERA: 0 }; let csr = 0;
+  for (const e of n.events) { const k = eventKind(e.event_type); if (k === 'CSR') csr += e.duration_sec / 60; else if (k) c[k]++; }
+  n.oa_count = c.OA; n.ca_count = c.CA; n.h_count = c.H; n.ua_count = c.UA; n.rera_count = c.RERA; n.csr_minutes = roundTo(csr, 1);
 }
 // ==PARSER END==
 
@@ -432,9 +518,31 @@ function msg(el, text, kind = 'info') { el.innerHTML = text ? `<div class="msg $
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 
 let sb = null, user = null, patients = [], patientId = null, sessions = [], pending = null;
+let dayDate = null, dayCache = {}, dayExt = [0, 480], dayChartIds = [];
 const charts = {};
 
-const COLS = 'id,session_date,first_on,last_off,usage_minutes,mask_sessions,ahi,ai,hi,oai,cai,uai,leak_50,leak_95,leak_max,press_50,press_95,press_max,resp_rate_50,min_vent_50';
+const COLS = 'id,session_date,first_on,last_off,usage_minutes,mask_sessions,ahi,ai,hi,oai,cai,uai,leak_50,leak_95,leak_max,press_50,press_95,press_max,resp_rate_50,min_vent_50,oa_count,ca_count,h_count,ua_count,rera_count,csr_minutes,stats,settings';
+
+// signal and event styling
+const SIG = {
+  mp:  { n: 'Mask pressure', u: 'cmH₂O', c: '#dc2626' },
+  epr: { n: 'EPR pressure', u: 'cmH₂O', c: '#f59e0b' },
+  tp:  { n: 'Target pressure', u: 'cmH₂O', c: '#2563eb' },
+  lk:  { n: 'Leak', u: 'L/min', c: '#7c3aed' },
+  rr:  { n: 'Respiratory rate', u: 'breaths/min', c: '#0891b2' },
+  tv:  { n: 'Tidal volume', u: 'mL', c: '#16a34a' },
+  mv:  { n: 'Minute ventilation', u: 'L/min', c: '#0d9488' },
+  sn:  { n: 'Snore', u: 'index', c: '#db2777' },
+  fl:  { n: 'Flow limitation', u: '0–1', c: '#ea580c' }
+};
+const EV = {
+  OA:   { n: 'Obstructive apnea (OA)', c: '#dc2626', y: 5 },
+  CA:   { n: 'Central apnea (CA)', c: '#2563eb', y: 4 },
+  H:    { n: 'Hypopnea (H)', c: '#f59e0b', y: 3 },
+  UA:   { n: 'Unclassified apnea (UA)', c: '#6b7280', y: 2 },
+  RERA: { n: 'RERA / arousal', c: '#16a34a', y: 1 },
+  CSR:  { n: 'Cheyne-Stokes (CSR)', c: '#7c3aed', y: 0 }
+};
 
 // ---------- boot ----------
 async function boot() {
@@ -475,13 +583,15 @@ async function startApp() {
   await loadPatients();
   const today = new Date(), back = new Date(Date.now() - 89 * DAY_MS);
   $('repTo').value = today.toISOString().slice(0, 10); $('repFrom').value = back.toISOString().slice(0, 10);
-  if (!patients.length) switchTab('patients'); else { await selectPatient(patientId); switchTab('dashboard'); }
+  if (!patients.length) switchTab('patients'); else { await selectPatient(patientId); switchTab('overview'); }
 }
 
 // ---------- tabs ----------
 function switchTab(name) {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('section.tab').forEach(s => show(s, s.id === 'tab-' + name));
+  if (name === 'daily') openDaily(dayDate);
+  if (name === 'overview') renderOverview();
 }
 $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) switchTab(b.dataset.tab); });
 
@@ -540,33 +650,75 @@ $('patientSel').onchange = () => selectPatient($('patientSel').value);
 async function selectPatient(id) {
   patientId = id || null; if (patientId) store.set('cpap_patient', patientId);
   if (patientId) { $('patientSel').value = patientId; $('impPatient').value = patientId; }
-  sessions = []; $('nightDetail').innerHTML = ''; $('reportOut').innerHTML = '';
+  sessions = []; dayCache = {}; dayDate = null; $('dayBody').innerHTML = ''; $('reportOut').innerHTML = '';
   if (patientId) sessions = await fetchSessions(patientId);
-  renderDashboard(); renderNights();
+  renderOverview(); renderStats(); renderNights();
+  if (!$('tab-daily').classList.contains('hidden')) openDaily(null);
 }
 async function fetchSessions(pid) {
   let all = [], from = 0;
   for (;;) {
     const { data, error } = await sb.from('sessions').select(COLS).eq('patient_id', pid).order('session_date', { ascending: true }).range(from, from + 999);
-    if (error) { alert('Could not load sessions: ' + error.message); break; }
+    if (error) { alert('Could not load sessions: ' + error.message + '\n\nIf you upgraded the app, run the latest schema.sql in Supabase first.'); break; }
     all = all.concat(data); if (data.length < 1000) break; from += 1000;
   }
   return all;
 }
 
-// ---------- stats ----------
-const avg = a => { a = a.filter(x => x !== null && x !== undefined && !isNaN(x)); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+// ---------- statistics ----------
+const pick = (r, k, f, fb) => { const v = r.stats?.[k]?.[f]; return (v !== undefined && v !== null) ? v : (fb ? r[fb] : null); };
 function summarize(rows) {
   const n = rows.length, used = rows.filter(r => r.usage_minutes > 0);
-  const ge4 = rows.filter(r => r.usage_minutes >= 240).length;
   const totalMin = rows.reduce((s, r) => s + (r.usage_minutes || 0), 0);
-  const weighted = key => { const w = used.filter(r => r[key] !== null); const t = w.reduce((s, r) => s + r.usage_minutes, 0); return t ? w.reduce((s, r) => s + r[key] * r.usage_minutes, 0) / t : null; };
+  const ge4 = rows.filter(r => r.usage_minutes >= 240).length;
+  const ok = v => v !== null && v !== undefined && !isNaN(v);
+  const w = fn => { let t = 0, a = 0; for (const r of used) { const v = fn(r); if (!ok(v)) continue; t += r.usage_minutes; a += v * r.usage_minutes; } return t ? a / t : null; };
+  const mx = fn => { let m = null; for (const r of used) { const v = fn(r); if (ok(v) && (m === null || v > m)) m = v; } return m; };
+  const withC = used.filter(r => ok(r.oa_count));
+  const hC = withC.reduce((s, r) => s + r.usage_minutes, 0) / 60;
+  const idx = k => hC ? withC.reduce((s, r) => s + (r[k] || 0), 0) / hC : null;
+  const oaI = idx('oa_count'), caI = idx('ca_count'), hI = idx('h_count'), uaI = idx('ua_count'), reraI = idx('rera_count');
   return {
-    nights: n, usedNights: used.length, ge4, ge4pct: n ? ge4 / n * 100 : 0,
+    nights: n, usedNights: used.length, ge4, ge4pct: n ? ge4 / n * 100 : 0, totalMin,
     avgUsageMin: n ? totalMin / n : 0, avgUsedMin: used.length ? totalMin / used.length : 0,
-    ahi: weighted('ahi'), ai: weighted('ai'), hi: weighted('hi'), leak95: avg(used.map(r => r.leak_95)), leakMed: avg(used.map(r => r.leak_50)),
-    press95: avg(used.map(r => r.press_95)), pressMed: avg(used.map(r => r.press_50)), pressMax: used.length ? Math.max(...used.map(r => r.press_max || 0)) : null
+    ahi: w(r => r.ahi), ai: w(r => r.ai), hi: w(r => r.hi),
+    oaI, caI, hI, uaI, reraI, rdi: hC ? (oaI + caI + hI + uaI + reraI) : null,
+    csrPct: hC ? withC.reduce((s, r) => s + (r.csr_minutes || 0), 0) / (hC * 60) * 100 : null,
+    mp50: w(r => pick(r, 'mp', 'p50', 'press_50')), mp95: w(r => pick(r, 'mp', 'p95', 'press_95')), mpMax: mx(r => pick(r, 'mp', 'max', 'press_max')),
+    lk50: w(r => pick(r, 'lk', 'p50', 'leak_50')), lk95: w(r => pick(r, 'lk', 'p95', 'leak_95')), lkMax: mx(r => pick(r, 'lk', 'max', 'leak_max')),
+    rr50: w(r => pick(r, 'rr', 'p50', 'resp_rate_50')), tv50: w(r => pick(r, 'tv', 'p50')), mv50: w(r => pick(r, 'mv', 'p50', 'min_vent_50')),
+    sn: w(r => pick(r, 'sn', 'avg')), fl: w(r => pick(r, 'fl', 'avg'))
   };
+}
+function statRows(s) {
+  const H = h => ({ h }), T = (l, v) => ({ l, v: String(v) });
+  return [
+    H('Usage'),
+    T('Nights', s.nights), T('Nights used', s.usedNights), T('Nights ≥ 4 h', `${s.ge4} (${num(s.ge4pct, 0)}%)`),
+    T('Average usage, all nights', hm(s.avgUsageMin)), T('Average usage, nights used', hm(s.avgUsedMin)), T('Total usage', num(s.totalMin / 60, 0) + ' h'),
+    H('Events per hour'),
+    T('AHI (device)', num(s.ahi, 2)), T('Obstructive apnea (OA)', num(s.oaI, 2)), T('Central apnea (CA)', num(s.caI, 2)), T('Hypopnea (H)', num(s.hI, 2)),
+    T('Unclassified apnea (UA)', num(s.uaI, 2)), T('RERA / arousal', num(s.reraI, 2)), T('RDI (all events)', num(s.rdi, 2)), T('Cheyne-Stokes, % of time', num(s.csrPct, 1)),
+    H('Mask pressure (cmH₂O)'),
+    T('Median', num(s.mp50, 2)), T('95th percentile', num(s.mp95, 2)), T('Maximum', num(s.mpMax, 2)),
+    H('Leak (L/min)'),
+    T('Median', num(s.lk50, 1)), T('95th percentile', num(s.lk95, 1)), T('Maximum', num(s.lkMax, 1)),
+    H('Breathing'),
+    T('Respiratory rate, median (breaths/min)', num(s.rr50, 1)), T('Tidal volume, median (mL)', num(s.tv50, 0)), T('Minute ventilation, median (L/min)', num(s.mv50, 1)),
+    T('Snore index, average', num(s.sn, 2)), T('Flow limitation, average', num(s.fl, 2))
+  ];
+}
+const PERIODS = [['Last night', 1], ['7 nights', 7], ['30 nights', 30], ['90 nights', 90], ['1 year', 365], ['All data', 0]];
+function renderStats() {
+  const el = $('statsTable');
+  if (!sessions.length) { el.innerHTML = '<tr><td class="muted">No data yet.</td></tr>'; return; }
+  const cols = PERIODS.map(([name, k]) => ({ name, rows: statRows(summarize(k ? sessions.slice(-k) : sessions)) }));
+  let h = '<tr><th></th>' + cols.map(c => `<th class="num">${c.name}</th>`).join('') + '</tr>';
+  cols[0].rows.forEach((r, i) => {
+    if (r.h) h += `<tr><th colspan="${cols.length + 1}" style="padding-top:14px;color:var(--ink)">${r.h}</th></tr>`;
+    else h += `<tr><td>${r.l}</td>` + cols.map(c => `<td class="num">${c.rows[i].v}</td>`).join('') + '</tr>';
+  });
+  el.innerHTML = h;
 }
 const kpi = (v, l, cls = '') => `<div class="kpi"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
 function kpiHtml(s) {
@@ -574,83 +726,221 @@ function kpiHtml(s) {
     kpi(hm(s.avgUsageMin), 'Average usage (all nights)') +
     kpi(num(s.ge4pct, 0) + '%', 'Nights ≥ 4 h', s.ge4pct >= 70 ? 'good' : 'bad') +
     kpi(num(s.ahi, 1), 'Average AHI', s.ahi === null ? '' : s.ahi < 5 ? 'good' : s.ahi < 15 ? 'warn' : 'bad') +
-    kpi(num(s.leak95, 1), 'Leak 95% (L/min)') +
-    kpi(num(s.press95, 1), 'Pressure 95% (cmH₂O)');
+    kpi(num(s.rdi, 1), 'RDI (all events)') +
+    kpi(num(s.lk95, 1), 'Leak 95% (L/min)') +
+    kpi(num(s.mp95, 1), 'Pressure 95% (cmH₂O)');
 }
 
 // ---------- charts ----------
+function themeColors() { const css = getComputedStyle(document.body); return { muted: css.getPropertyValue('--muted').trim() || '#667085', line: css.getPropertyValue('--line').trim() || '#e3e8ef', brand: css.getPropertyValue('--brand').trim() || '#0f766e' }; }
 function makeChart(id, cfg) {
   if (charts[id]) charts[id].destroy();
-  const css = getComputedStyle(document.body);
-  Chart.defaults.color = css.getPropertyValue('--muted').trim() || '#667085';
-  Chart.defaults.borderColor = css.getPropertyValue('--line').trim() || '#e3e8ef';
+  const t = themeColors();
+  Chart.defaults.color = t.muted; Chart.defaults.borderColor = t.line;
   charts[id] = new Chart($(id), cfg);
 }
-const BRAND = () => getComputedStyle(document.body).getPropertyValue('--brand').trim() || '#0f766e';
+const BRAND = () => themeColors().brand;
 function lineCfg(labels, sets, extra = {}) {
-  return { type: 'line', data: { labels, datasets: sets }, options: { responsive: true, maintainAspectRatio: false, animation: false, spanGaps: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: sets.length > 1, labels: { boxWidth: 12 } } }, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }, ...extra } };
+  return { type: 'line', data: { labels, datasets: sets }, options: { responsive: true, maintainAspectRatio: false, animation: false, spanGaps: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: sets.length > 1, labels: { boxWidth: 12 } } }, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: false } }, ...extra } };
 }
+// ids: { usage, ahi, press, leak, rr, tv, mv, snfl }  (any may be omitted)
 function drawTrendCharts(rows, ids) {
-  const labels = rows.map(r => r.session_date.slice(5));
-  const ref = (val, name) => ({ label: name, data: rows.map(() => val), borderColor: '#b45309', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
-  const mk = (data, label, color) => ({ label, data, borderColor: color, backgroundColor: color + '33', borderWidth: 2, pointRadius: rows.length > 60 ? 0 : 2, tension: .2 });
-  makeChart(ids[0], { type: 'bar', data: { labels, datasets: [{ type: 'bar', label: 'Usage (h)', data: rows.map(r => +(r.usage_minutes / 60).toFixed(2)), backgroundColor: BRAND() + 'cc' }, { type: 'line', label: '4 h target', data: rows.map(() => 4), borderColor: '#b45309', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12 } } } } });
-  makeChart(ids[1], lineCfg(labels, [mk(rows.map(r => r.ahi), 'AHI', BRAND()), ref(5, 'AHI = 5')]));
-  makeChart(ids[2], lineCfg(labels, [mk(rows.map(r => r.leak_95), 'Leak 95%', '#7c3aed'), mk(rows.map(r => r.leak_50), 'Leak median', '#0ea5e9')]));
-  makeChart(ids[3], lineCfg(labels, [mk(rows.map(r => r.press_95), 'Pressure 95%', '#dc2626'), mk(rows.map(r => r.press_50), 'Pressure median', '#f59e0b')], { scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: false } } }));
+  const labels = rows.map(r => r.session_date.slice(5)), small = rows.length > 60;
+  const L = (label, fn, color, extra = {}) => ({ label, data: rows.map(fn), borderColor: color, backgroundColor: color + '33', borderWidth: 2, pointRadius: small ? 0 : 2, tension: .2, spanGaps: true, ...extra });
+  const P = (k, f, fb) => r => pick(r, k, f, fb);
+  const ref = (val, name, color = '#b45309') => ({ label: name, data: rows.map(() => val), borderColor: color, borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
+  if (ids.usage) makeChart(ids.usage, { type: 'bar', data: { labels, datasets: [{ type: 'bar', label: 'Usage (h)', data: rows.map(r => +(r.usage_minutes / 60).toFixed(2)), backgroundColor: BRAND() + 'cc' }, { type: 'line', label: '4 h target', data: rows.map(() => 4), borderColor: '#b45309', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12 } } } } });
+  if (ids.ahi) {
+    const hasC = rows.some(r => r.oa_count !== null && r.oa_count !== undefined);
+    if (hasC) {
+      const ix = k => r => (r[k] === null || r[k] === undefined) ? null : +(r[k] / ((r.usage_minutes || 0) / 60 || 1)).toFixed(2);
+      const bar = (key, fn) => ({ type: 'bar', label: EV[key].n, data: rows.map(fn), backgroundColor: EV[key].c, stack: 'ev' });
+      makeChart(ids.ahi, { type: 'bar', data: { labels, datasets: [bar('OA', ix('oa_count')), bar('CA', ix('ca_count')), bar('H', ix('h_count')), bar('UA', ix('ua_count')), bar('RERA', ix('rera_count'))] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { stacked: true, ticks: { maxTicksLimit: 8 } }, y: { stacked: true, beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12 } } } } });
+    } else makeChart(ids.ahi, lineCfg(labels, [L('AHI', r => r.ahi, BRAND()), ref(5, 'AHI = 5')], { scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } } }));
+  }
+  if (ids.press) makeChart(ids.press, lineCfg(labels, [L('Median', P('mp', 'p50', 'press_50'), '#f59e0b'), L('95%', P('mp', 'p95', 'press_95'), '#dc2626'), L('Max', P('mp', 'max', 'press_max'), '#7f1d1d', { borderDash: [3, 3], borderWidth: 1 })]));
+  if (ids.leak) makeChart(ids.leak, lineCfg(labels, [L('Median', P('lk', 'p50', 'leak_50'), '#0ea5e9'), L('95%', P('lk', 'p95', 'leak_95'), '#7c3aed'), L('Max', P('lk', 'max', 'leak_max'), '#4c1d95', { borderDash: [3, 3], borderWidth: 1 }), ref(24, 'Large leak (24)', '#b42318')], { scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } } }));
+  if (ids.rr) makeChart(ids.rr, lineCfg(labels, [L('Resp. rate (median)', P('rr', 'p50', 'resp_rate_50'), SIG.rr.c)]));
+  if (ids.tv) makeChart(ids.tv, lineCfg(labels, [L('Tidal volume (median)', P('tv', 'p50'), SIG.tv.c)]));
+  if (ids.mv) makeChart(ids.mv, lineCfg(labels, [L('Minute ventilation (median)', P('mv', 'p50', 'min_vent_50'), SIG.mv.c)]));
+  if (ids.snfl) makeChart(ids.snfl, lineCfg(labels, [L('Snore (avg)', P('sn', 'avg'), SIG.sn.c, { yAxisID: 'y' }), L('Flow limitation (avg)', P('fl', 'avg'), SIG.fl.c, { yAxisID: 'y1' })],
+    { scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { position: 'left', beginAtZero: true, title: { display: true, text: 'snore' } }, y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'flow lim.' } } } }));
 }
 
-// ---------- dashboard ----------
-function renderDashboard() {
+// ---------- overview ----------
+function renderOverview() {
   const has = sessions.length > 0;
-  show($('dashEmpty'), !has); show($('dashBody'), has);
+  show($('ovEmpty'), !has); show($('ovBody'), has);
   if (!has) return;
-  const n = +$('dashRange').value;
+  const n = +$('ovRange').value;
   const rows = n ? sessions.slice(-n) : sessions;
-  $('dashKpis').innerHTML = kpiHtml(summarize(rows));
-  drawTrendCharts(rows, ['chUsage', 'chAhi', 'chLeak', 'chPress']);
+  $('ovKpis').innerHTML = kpiHtml(summarize(rows));
+  drawTrendCharts(rows, { usage: 'ovUsage', ahi: 'ovAhi', press: 'ovPress', leak: 'ovLeak', rr: 'ovRr', tv: 'ovTv', mv: 'ovMv', snfl: 'ovSnFl' });
 }
-$('dashRange').onchange = renderDashboard;
+$('ovRange').onchange = renderOverview;
 
-// ---------- nights ----------
+// ---------- nights table ----------
 function renderNights() {
   const rows = [...sessions].reverse();
-  $('nightsTable').innerHTML = '<tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">AI</th><th class="num">HI</th><th class="num">Leak 95%</th><th class="num">Press 95%</th><th>Mask on → off</th></tr>' +
-    (rows.map(r => `<tr class="click" data-id="${r.id}"><td>${r.session_date}</td><td class="num ${r.usage_minutes >= 240 ? '' : 'warn'}">${hm(r.usage_minutes)}</td>
-      <td class="num ${r.ahi === null ? '' : r.ahi < 5 ? 'good' : r.ahi < 15 ? 'warn' : 'bad'}">${num(r.ahi)}</td><td class="num">${num(r.ai)}</td><td class="num">${num(r.hi)}</td>
-      <td class="num">${num(r.leak_95)}</td><td class="num">${num(r.press_95)}</td><td>${r.first_on ? r.first_on.slice(11, 16) : '–'} → ${r.last_off ? r.last_off.slice(11, 16) : '–'}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">No data yet.</td></tr>');
+  const ev = r => (r.oa_count === null || r.oa_count === undefined) ? '–' : r.oa_count;
+  $('nightsTable').innerHTML = '<tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">OA</th><th class="num">CA</th><th class="num">H</th><th class="num">Leak 95%</th><th class="num">Press 95%</th><th>Mask on → off</th></tr>' +
+    (rows.map(r => `<tr class="click" data-date="${r.session_date}"><td>${r.session_date}</td><td class="num ${r.usage_minutes >= 240 ? '' : 'warn'}">${hm(r.usage_minutes)}</td>
+      <td class="num ${r.ahi === null ? '' : r.ahi < 5 ? 'good' : r.ahi < 15 ? 'warn' : 'bad'}">${num(r.ahi)}</td><td class="num">${ev(r)}</td><td class="num">${r.ca_count ?? '–'}</td><td class="num">${r.h_count ?? '–'}</td>
+      <td class="num">${num(pick(r, 'lk', 'p95', 'leak_95'))}</td><td class="num">${num(pick(r, 'mp', 'p95', 'press_95'))}</td><td>${r.first_on ? r.first_on.slice(11, 16) : '–'} → ${r.last_off ? r.last_off.slice(11, 16) : '–'}</td></tr>`).join('') || '<tr><td colspan="9" class="muted">No data yet.</td></tr>');
 }
-$('nightsTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) showNight(tr.dataset.id); });
-async function showNight(id) {
-  const r = sessions.find(x => x.id === id); if (!r) return;
-  $('nightDetail').innerHTML = '<div class="card muted">Loading…</div>';
-  const [s, ev] = await Promise.all([
-    sb.from('sessions').select('series').eq('id', id).single(),
-    sb.from('events').select('event_type,onset_sec,duration_sec').eq('session_id', id).order('onset_sec').limit(2000)
-  ]);
-  const series = s.data?.series, events = ev.data || [];
-  const counts = {}; events.forEach(x => counts[x.event_type] = (counts[x.event_type] || 0) + 1);
-  $('nightDetail').innerHTML = `<div class="card"><h2>Night of ${r.session_date} · ${hm(r.usage_minutes)} · AHI ${num(r.ahi)}</h2>
-    <div class="chartbox" style="height:280px">${series ? '<canvas id="chNight"></canvas>' : '<p class="muted">No per-minute curve stored for this night (import the DATALOG folder to get it).</p>'}</div>
-    <h3>Events (${events.length})</h3>
-    <p class="muted">${Object.entries(counts).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') || 'No event data stored for this night.'}</p>
-    ${events.length ? `<div class="tablewrap" style="max-height:260px;overflow:auto"><table><tr><th>Time</th><th>Type</th><th class="num">Duration (s)</th></tr>${events.slice(0, 300).map(x => `<tr><td>${clock(x.onset_sec / 60)}</td><td>${esc(x.event_type)}</td><td class="num">${num(x.duration_sec, 0)}</td></tr>`).join('')}</table></div>` : ''}</div>`;
-  if (series) {
-    makeChart('chNight', { type: 'line', data: { labels: series.t.map(clock), datasets: [
-      { label: 'Pressure (cmH₂O)', data: series.p, borderColor: '#dc2626', yAxisID: 'y', pointRadius: 0, borderWidth: 1.5 },
-      { label: 'Leak (L/min)', data: series.l, borderColor: '#7c3aed', yAxisID: 'y1', pointRadius: 0, borderWidth: 1.5 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: false, spanGaps: false, interaction: { mode: 'index', intersect: false }, scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { position: 'left', title: { display: true, text: 'cmH₂O' } }, y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'L/min' } } } } });
-  }
-  $('nightDetail').scrollIntoView({ behavior: 'smooth' });
-}
+$('nightsTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-date]'); if (tr) { dayDate = tr.dataset.date; switchTab('daily'); } });
 $('btnCsv').onclick = () => {
   if (!sessions.length) return;
-  const cols = ['session_date', 'first_on', 'last_off', 'usage_minutes', 'mask_sessions', 'ahi', 'ai', 'hi', 'oai', 'cai', 'uai', 'leak_50', 'leak_95', 'leak_max', 'press_50', 'press_95', 'press_max', 'resp_rate_50', 'min_vent_50'];
+  const cols = ['session_date', 'first_on', 'last_off', 'usage_minutes', 'mask_sessions', 'ahi', 'ai', 'hi', 'oai', 'cai', 'uai', 'oa_count', 'ca_count', 'h_count', 'ua_count', 'rera_count', 'csr_minutes', 'leak_50', 'leak_95', 'leak_max', 'press_50', 'press_95', 'press_max', 'resp_rate_50', 'min_vent_50'];
   const csv = [cols.join(',')].concat(sessions.map(r => cols.map(c => r[c] ?? '').join(','))).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   const p = patients.find(x => x.id === patientId);
   a.download = `cpap_${(p?.full_name || 'patient').replace(/\W+/g, '_')}.csv`; a.click();
 };
+
+// ---------- daily view (OSCAR-style stacked charts) ----------
+function settingsLine(s) {
+  if (!s || !Object.keys(s).length) return '';
+  const parts = [], mode = s['Mode'], M = { 0: 'CPAP', 1: 'APAP (AutoSet)' };
+  if (mode !== undefined) parts.push(M[mode] || ('Mode ' + mode));
+  if (s['S.C.Press'] !== undefined && mode === 0) parts.push(`Pressure ${s['S.C.Press']} cmH₂O`);
+  if (s['S.A.MinPress'] !== undefined && s['S.A.MaxPress'] !== undefined && mode !== 0) parts.push(`${s['S.A.MinPress']}–${s['S.A.MaxPress']} cmH₂O`);
+  if (s['S.EPR.Level'] !== undefined) parts.push('EPR ' + (s['S.EPR.EPREnable'] === 0 ? 'off' : s['S.EPR.Level']));
+  if (s['S.RampTime'] !== undefined && s['S.RampEnable']) parts.push(`Ramp ${s['S.RampTime']} min`);
+  return parts.join(' · ');
+}
+async function loadDay(r) {
+  if (dayCache[r.id]) return dayCache[r.id];
+  const [s, ev] = await Promise.all([
+    sb.from('sessions').select('series').eq('id', r.id).single(),
+    sb.from('events').select('event_type,onset_sec,duration_sec').eq('session_id', r.id).order('onset_sec').limit(5000)
+  ]);
+  return (dayCache[r.id] = { series: s.data?.series || null, events: ev.data || [] });
+}
+async function openDaily(date) {
+  const body = $('dayBody');
+  if (!sessions.length) { body.innerHTML = '<div class="msg info">No data yet. Go to <b>Import SD card</b>.</div>'; return; }
+  const dates = sessions.map(r => r.session_date);
+  if (!date) date = dates[dates.length - 1];
+  if (!dates.includes(date)) { // nearest night
+    const t = Date.parse(date); date = dates.reduce((b, d) => Math.abs(Date.parse(d) - t) < Math.abs(Date.parse(b) - t) ? d : b, dates[0]);
+  }
+  dayDate = date; $('dayDate').value = date;
+  $('dayDate').min = dates[0]; $('dayDate').max = dates[dates.length - 1];
+  const i = dates.indexOf(date);
+  $('dayPrev').disabled = i <= 0; $('dayNext').disabled = i >= dates.length - 1;
+  $('dayNote').textContent = `Night ${i + 1} of ${dates.length}`;
+  const r = sessions[i];
+  body.innerHTML = '<div class="card muted">Loading…</div>';
+  let d;
+  try { d = await loadDay(r); } catch (e) { body.innerHTML = `<div class="msg err">${esc(e.message)}</div>`; return; }
+  if (dayDate !== date) return; // user moved on while loading
+  renderDay(r, d);
+}
+$('dayPrev').onclick = () => { const i = sessions.findIndex(r => r.session_date === dayDate); if (i > 0) openDaily(sessions[i - 1].session_date); };
+$('dayNext').onclick = () => { const i = sessions.findIndex(r => r.session_date === dayDate); if (i >= 0 && i < sessions.length - 1) openDaily(sessions[i + 1].session_date); };
+$('dayDate').onchange = () => { if ($('dayDate').value) openDaily($('dayDate').value); };
+
+function xScale(min, max) {
+  const span = max - min, steps = [1, 2, 5, 10, 15, 30, 60, 120, 240], ss = steps.find(s => span / s <= 9) || 240, t = themeColors();
+  return { type: 'linear', min, max, ticks: { stepSize: ss, callback: v => clock(v), maxRotation: 0, autoSkip: false }, grid: { color: t.line } };
+}
+function sigDatasets(series, keys) {
+  return keys.filter(k => series[k]).map(k => {
+    const data = [];
+    series.t.forEach((t, i) => { if (i && t - series.t[i - 1] > 3) data.push({ x: series.t[i - 1] + 1, y: null }); data.push({ x: t, y: series[k][i] }); });
+    return { label: `${SIG[k].n} (${SIG[k].u})`, data, borderColor: SIG[k].c, backgroundColor: SIG[k].c, borderWidth: 1.5, pointRadius: 0, tension: 0, spanGaps: false, parsing: false };
+  });
+}
+function eventDatasets(events) {
+  const by = {};
+  for (const e of events) { const k = eventKind(e.event_type); if (k) (by[k] = by[k] || []).push(e); }
+  return Object.keys(EV).filter(k => by[k]).map(k => {
+    const data = [];
+    for (const e of by[k]) { const x = e.onset_sec / 60, dur = Math.max(e.duration_sec / 60, 0); data.push({ x, y: EV[k].y }, { x: x + dur, y: EV[k].y }, { x: x + dur, y: null }); }
+    return { label: `${EV[k].n} · ${by[k].length}`, data, borderColor: EV[k].c, backgroundColor: EV[k].c, borderWidth: 6, pointRadius: 2.5, showLine: true, spanGaps: false, parsing: false };
+  });
+}
+function dayChart(id, datasets, yOpts, tip) {
+  dayChartIds.push(id);
+  makeChart(id, { type: 'line', data: { datasets }, options: {
+    responsive: true, maintainAspectRatio: false, animation: false, parsing: false, normalized: true,
+    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    plugins: { legend: { display: datasets.length > 1, position: 'top', align: 'start', labels: { boxWidth: 10, font: { size: 11 } } },
+      tooltip: { callbacks: Object.assign({ title: items => items.length ? clock(items[0].parsed.x) : '' }, tip || {}) } },
+    scales: { x: xScale(dayExt[0], dayExt[1]), y: Object.assign({ afterFit: s => { s.width = 58; } }, yOpts || {}) } } });
+}
+function stackRow(id, title, h) { return `<div class="stackrow"><div class="stacktitle">${title}</div><div class="chartbox" style="height:${h}px"><canvas id="${id}"></canvas></div></div>`; }
+
+function renderDay(r, d) {
+  dayChartIds.forEach(id => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }); dayChartIds = [];
+  if (charts.dcDonut) { charts.dcDonut.destroy(); delete charts.dcDonut; }
+  const series = d.series, events = d.events, hrs = (r.usage_minutes || 0) / 60;
+  const cnt = { OA: r.oa_count, CA: r.ca_count, H: r.h_count, UA: r.ua_count, RERA: r.rera_count };
+  const hasC = cnt.OA !== null && cnt.OA !== undefined;
+  const total = hasC ? Object.values(cnt).reduce((a, b) => a + (b || 0), 0) : null;
+  const ix = k => hasC && hrs ? num(cnt[k] / hrs, 2) : '–';
+  const sl = settingsLine(r.settings);
+  let html = `<div class="kpis">${kpi(hm(r.usage_minutes), 'Usage') + kpi(`${r.first_on ? r.first_on.slice(11, 16) : '–'} → ${r.last_off ? r.last_off.slice(11, 16) : '–'}`, `Mask on → off (${r.mask_sessions} period${r.mask_sessions === 1 ? '' : 's'})`) +
+    kpi(num(r.ahi, 2), 'AHI (device)', r.ahi === null ? '' : r.ahi < 5 ? 'good' : r.ahi < 15 ? 'warn' : 'bad') + kpi(hasC && hrs ? num(total / hrs, 2) : '–', 'RDI (all events)') +
+    kpi(num(pick(r, 'lk', 'p95', 'leak_95'), 1), 'Leak 95% (L/min)') + kpi(num(pick(r, 'mp', 'p95', 'press_95'), 1), 'Pressure 95% (cmH₂O)')}</div>`;
+  if (sl) html += `<div class="msg info"><b>Device settings:</b> ${esc(sl)}</div>`;
+  if (hasC) {
+    html += `<div class="card"><div class="row" style="align-items:center"><div style="max-width:200px;min-width:160px"><div class="chartbox" style="height:170px"><canvas id="dcDonut"></canvas></div></div>
+      <div style="flex:3"><table><tr><th>Event</th><th class="num">Count</th><th class="num">Per hour</th></tr>
+      ${Object.keys(cnt).map(k => `<tr><td><span class="swatch" style="background:${EV[k].c}"></span>${EV[k].n}</td><td class="num">${cnt[k]}</td><td class="num">${ix(k)}</td></tr>`).join('')}
+      <tr><td><b>Total</b></td><td class="num"><b>${total}</b></td><td class="num"><b>${hrs ? num(total / hrs, 2) : '–'}</b></td></tr>
+      ${r.csr_minutes ? `<tr><td><span class="swatch" style="background:${EV.CSR.c}"></span>Cheyne-Stokes</td><td class="num" colspan="2">${num(r.csr_minutes, 1)} min</td></tr>` : ''}</table></div></div></div>`;
+  }
+  if (!series && !events.length) {
+    html += '<div class="msg info">No detailed curves or events are stored for this night. Import the whole SD card (including the DATALOG folder) to get them.</div>';
+    $('dayBody').innerHTML = html; return;
+  }
+  // extent of the night in minutes since noon
+  const ts = []; if (series) ts.push(series.t[0], series.t[series.t.length - 1] + 1);
+  events.forEach(e => ts.push(e.onset_sec / 60));
+  dayExt = [Math.floor(Math.min(...ts) / 10) * 10, Math.ceil((Math.max(...ts) + 1) / 10) * 10];
+  const hasP = series && ['mp', 'epr', 'tp'].some(k => series[k]);
+  const rows = [];
+  if (events.length) rows.push(['dcEv', 'Events', 140]);
+  if (hasP) rows.push(['dcPr', 'Pressure (cmH₂O)', 170]);
+  for (const [k, id, h] of [['lk', 'dcLk', 140], ['rr', 'dcRr', 110], ['tv', 'dcTv', 110], ['mv', 'dcMv', 110], ['sn', 'dcSn', 90], ['fl', 'dcFl', 90]]) if (series && series[k]) rows.push([id, `${SIG[k].n} (${SIG[k].u})`, h]);
+  html += `<div class="card noprint"><div class="dayctl"><span class="muted">View</span>
+    <select id="dayWidth"><option value="0">Whole night</option><option value="240">4 hours</option><option value="120">2 hours</option><option value="60">1 hour</option><option value="30">30 minutes</option></select>
+    <input type="range" id="daySlider" class="grow" step="1" disabled aria-label="Scroll through the night"></div></div>
+    <div class="card" id="dayStack">${rows.map(([id, t, h]) => stackRow(id, t, h)).join('')}</div>`;
+  // per-signal statistics for the night
+  const keys = Object.keys(SIG).filter(k => r.stats && r.stats[k]);
+  if (keys.length) html += `<div class="card"><h3 style="margin-top:0">Signal statistics for this night</h3><div class="tablewrap"><table><tr><th>Signal</th><th class="num">Min</th><th class="num">Median</th><th class="num">90%</th><th class="num">95%</th><th class="num">Max</th><th class="num">Average</th></tr>
+    ${keys.map(k => { const s = r.stats[k], dd = k === 'tv' ? 0 : 2; return `<tr><td><span class="swatch" style="background:${SIG[k].c}"></span>${SIG[k].n} (${SIG[k].u})</td><td class="num">${num(s.min, dd)}</td><td class="num">${num(s.p50, dd)}</td><td class="num">${num(s.p90, dd)}</td><td class="num">${num(s.p95, dd)}</td><td class="num">${num(s.max, dd)}</td><td class="num">${num(s.avg, dd)}</td></tr>`; }).join('')}</table></div></div>`;
+  // settings and event list
+  const sk = r.settings ? Object.keys(r.settings).sort() : [];
+  html += `<div class="card">${sk.length ? `<details><summary>All device settings recorded for this night (${sk.length})</summary><div class="tablewrap"><table>${sk.map(k => `<tr><td>${esc(k)}</td><td class="num">${esc(r.settings[k])}</td></tr>`).join('')}</table></div></details>` : ''}
+    ${events.length ? `<details><summary>Event list (${events.length})</summary><div class="tablewrap" style="max-height:300px;overflow:auto"><table><tr><th>Time</th><th>Type</th><th class="num">Duration (s)</th></tr>${events.slice(0, 500).map(x => `<tr><td>${clock(x.onset_sec / 60)}</td><td>${esc(x.event_type)}</td><td class="num">${num(x.duration_sec, 0)}</td></tr>`).join('')}</table></div></details>` : ''}</div>`;
+  $('dayBody').innerHTML = html;
+
+  if (hasC && $('dcDonut') && total > 0) {
+    makeChart('dcDonut', { type: 'doughnut', data: { labels: Object.keys(cnt).map(k => EV[k].n), datasets: [{ data: Object.keys(cnt).map(k => cnt[k]), backgroundColor: Object.keys(cnt).map(k => EV[k].c), borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, cutout: '62%', plugins: { legend: { display: false } } } });
+  }
+  // charts
+  if (events.length) dayChart('dcEv', eventDatasets(events), { min: -0.5, max: 5.5, ticks: { stepSize: 1, callback: v => ({ 0: 'CSR', 1: 'RERA', 2: 'UA', 3: 'H', 4: 'CA', 5: 'OA' })[v] || '' } },
+    { label: c => `${c.dataset.label.split(' · ')[0]}` });
+  if (hasP) dayChart('dcPr', sigDatasets(series, ['mp', 'epr', 'tp']), { beginAtZero: false });
+  if (series && series.lk) dayChart('dcLk', sigDatasets(series, ['lk']).concat([{ label: 'Large leak (24 L/min)', data: [{ x: dayExt[0], y: 24 }, { x: dayExt[1], y: 24 }], borderColor: '#b42318', borderDash: [6, 4], borderWidth: 1, pointRadius: 0, parsing: false }]), { beginAtZero: true });
+  for (const [k, id] of [['rr', 'dcRr'], ['tv', 'dcTv'], ['mv', 'dcMv'], ['sn', 'dcSn'], ['fl', 'dcFl']]) if (series && series[k]) dayChart(id, sigDatasets(series, [k]), { beginAtZero: true });
+  $('dayWidth').onchange = () => { $('daySlider').value = dayExt[0]; applyWindow(); };
+  $('daySlider').oninput = applyWindow;
+  applyWindow();
+}
+function applyWindow() {
+  const w = +$('dayWidth').value, t0 = dayExt[0], t1 = dayExt[1], width = w || (t1 - t0), startMax = Math.max(t0, t1 - width), sl = $('daySlider');
+  sl.disabled = !w || startMax <= t0; sl.min = t0; sl.max = startMax;
+  const s = w ? Math.min(Math.max(+sl.value || t0, t0), startMax) : t0;
+  sl.value = s;
+  const sc = xScale(s, s + width);
+  for (const id of dayChartIds) { const c = charts[id]; if (!c) continue; c.options.scales.x.min = s; c.options.scales.x.max = s + width; c.options.scales.x.ticks.stepSize = sc.ticks.stepSize; c.update('none'); }
+}
 
 // ---------- import ----------
 function log(t) { const el = $('impLog'); show(el, true); el.textContent += t + '\n'; el.scrollTop = el.scrollHeight; }
@@ -674,25 +964,31 @@ $('btnParse').onclick = async () => {
     }
     if (!nights.length) { msg($('impMsg'), 'Nothing new to import. All nights on this card are already saved.', 'ok'); return; }
     const byDay = new Map(nights.map(n => [n.session_date, n]));
-    const detail = files.map(f => ({ f, i: detailInfo(f.name) })).filter(x => x.i && (x.i.kind === 'PLD' || x.i.kind === 'EVE') && byDay.has(x.i.day));
-    log(`Reading ${detail.length} detail files (PLD/EVE)…`);
-    const pts = new Map();
-    let done = 0, failed = 0;
-    for (const { f, i } of detail) {
-      const n = byDay.get(i.day);
-      try {
-        const buf = await f.arrayBuffer();
-        if (i.kind === 'PLD') { const a = pts.get(i.day) || []; parsePLD(buf, i.ms, n.noonMs).forEach(x => a.push(x)); pts.set(i.day, a); }
-        else parseEVE(buf, i.ms, n.noonMs).forEach(x => n.events.push(x));
-      } catch (err) { failed++; log(`  skipped ${f.name}: ${err.message}`); }
-      if (++done % 20 === 0) { log(`  ${done}/${detail.length}`); await new Promise(r => setTimeout(r)); }
+    const detail = files.map(f => ({ f, i: detailInfo(f.name) })).filter(x => x.i && ['PLD', 'EVE', 'CSL'].includes(x.i.kind) && byDay.has(x.i.day));
+    log(`Reading ${detail.length} detail files (PLD / EVE / CSL)…`);
+    const grouped = new Map();
+    for (const d of detail) { if (!grouped.has(d.i.day)) grouped.set(d.i.day, []); grouped.get(d.i.day).push(d); }
+    let doneDays = 0, failed = 0;
+    for (const [day, list] of grouped) {
+      const n = byDay.get(day), acc = {};
+      list.sort((a, b) => a.i.ms - b.i.ms);
+      for (const { f, i } of list) {
+        try {
+          const buf = await f.arrayBuffer();
+          if (i.kind === 'PLD') accPLD(acc, parsePLD(buf, i.ms, n.noonMs));
+          else { parseEVE(buf, i.ms, n.noonMs).forEach(x => n.events.push(x)); if (i.kind === 'EVE') n.hasEve = true; }
+        } catch (err) { failed++; log(`  skipped ${f.name}: ${err.message}`); }
+      }
+      const r = finishAcc(acc, SERIES_STEP); n.series = r.series; n.stats = r.stats;
+      if (n.hasEve) countEvents(n);
+      if (++doneDays % 10 === 0) { log(`  ${doneDays}/${grouped.size} nights processed`); await new Promise(r => setTimeout(r)); }
     }
-    for (const [day, a] of pts) byDay.get(day).series = buildSeries(a);
     pending = { pid, nights };
-    const withSeries = nights.filter(n => n.series).length, evs = nights.reduce((s, n) => s + n.events.length, 0);
-    log(`Done. ${withSeries} nights with curves, ${evs} events${failed ? `, ${failed} files skipped` : ''}.`);
+    const withSeries = nights.filter(n => n.series), evs = nights.reduce((s, n) => s + n.events.length, 0);
+    log(`Done. ${withSeries.length} nights with curves, ${evs} events${failed ? `, ${failed} files skipped` : ''}.`);
+    const kb = withSeries.length ? Math.round(withSeries.slice(0, 20).reduce((s, n) => s + JSON.stringify(n.series).length + JSON.stringify(n.stats).length, 0) / Math.min(withSeries.length, 20) / 1024) : 0;
     const s = summarize(nights);
-    $('impPreview').innerHTML = `<h3>Preview</h3><div class="kpis">${kpi(nights.length, 'Nights to save') + kpi(nights[0].session_date, 'First night') + kpi(nights[nights.length - 1].session_date, 'Last night') + kpi(num(s.ahi, 1), 'Average AHI') + kpi(hm(s.avgUsageMin), 'Average usage')}</div>
+    $('impPreview').innerHTML = `<h3>Preview</h3><div class="kpis">${kpi(nights.length, 'Nights to save') + kpi(nights[0].session_date, 'First night') + kpi(nights[nights.length - 1].session_date, 'Last night') + kpi(num(s.ahi, 1), 'Average AHI') + kpi(hm(s.avgUsageMin), 'Average usage') + kpi(kb ? `≈ ${kb} KB` : '–', 'Stored per night')}</div>
       <p><button id="btnSave">Save to Supabase</button></p><div id="saveMsg"></div>`;
     $('btnSave').onclick = saveImport;
   } catch (err) { msg($('impMsg'), err.message, 'err'); }
@@ -703,11 +999,13 @@ async function saveImport() {
   const { pid, nights } = pending, btn = $('btnSave'); btn.disabled = true;
   try {
     let saved = 0;
-    for (let i = 0; i < nights.length; i += 15) {
-      const chunk = nights.slice(i, i + 15);
+    for (let i = 0; i < nights.length; i += 10) {
+      const chunk = nights.slice(i, i + 10);
       const rows = chunk.map(n => ({ patient_id: pid, session_date: n.session_date, first_on: n.first_on, last_off: n.last_off, usage_minutes: n.usage_minutes, mask_sessions: n.mask_sessions,
         ahi: n.ahi, ai: n.ai, hi: n.hi, oai: n.oai, cai: n.cai, uai: n.uai, leak_50: n.leak_50, leak_95: n.leak_95, leak_max: n.leak_max,
-        press_50: n.press_50, press_95: n.press_95, press_max: n.press_max, resp_rate_50: n.resp_rate_50, min_vent_50: n.min_vent_50, series: n.series }));
+        press_50: n.press_50, press_95: n.press_95, press_max: n.press_max, resp_rate_50: n.resp_rate_50, min_vent_50: n.min_vent_50,
+        oa_count: n.oa_count, ca_count: n.ca_count, h_count: n.h_count, ua_count: n.ua_count, rera_count: n.rera_count, csr_minutes: n.csr_minutes,
+        stats: n.stats, settings: n.settings, series: n.series }));
       const { data, error } = await sb.from('sessions').upsert(rows, { onConflict: 'patient_id,session_date' }).select('id,session_date');
       if (error) throw error;
       const idByDate = Object.fromEntries(data.map(d => [d.session_date, d.id]));
@@ -730,25 +1028,20 @@ $('btnReport').onclick = () => {
   const rows = sessions.filter(r => (!from || r.session_date >= from) && (!to || r.session_date <= to));
   if (!rows.length) { $('reportOut').innerHTML = '<div class="msg info">No nights in that period.</div>'; return; }
   const p = patients.find(x => x.id === patientId), s = summarize(rows);
-  const compliant = s.ge4pct >= 70;
+  const compliant = s.ge4pct >= 70, sr = statRows(s);
+  const last = [...rows].reverse().find(r => r.settings), sl = last ? settingsLine(last.settings) : '';
   $('reportOut').innerHTML = `<section class="card" id="reportCard"><h2 style="font-size:20px">CPAP Therapy Report</h2>
     <p><b>${esc(p.full_name)}</b>${p.ic_or_ref ? ' · ' + esc(p.ic_or_ref) : ''}${p.date_of_birth ? ' · DOB ' + esc(p.date_of_birth) : ''}<br>
-    Device: ${esc(p.device_model || 'AirSense 10')}${p.device_serial ? ' · S/N ' + esc(p.device_serial) : ''}<br>Period: ${rows[0].session_date} to ${rows[rows.length - 1].session_date} (${rows.length} nights)</p>
+    Device: ${esc(p.device_model || 'AirSense 10')}${p.device_serial ? ' · S/N ' + esc(p.device_serial) : ''}<br>Period: ${rows[0].session_date} to ${rows[rows.length - 1].session_date} (${rows.length} nights)${sl ? '<br>Settings (latest): ' + esc(sl) : ''}</p>
     <div class="kpis">${kpiHtml(s)}</div>
-    <table><tr><th>Measure</th><th class="num">Value</th></tr>
-      <tr><td>Nights used (any use)</td><td class="num">${s.usedNights} of ${s.nights}</td></tr>
-      <tr><td>Nights with ≥ 4 hours</td><td class="num">${s.ge4} (${num(s.ge4pct, 0)}%)</td></tr>
-      <tr><td>Average usage on nights used</td><td class="num">${hm(s.avgUsedMin)}</td></tr>
-      <tr><td>AHI / AI / HI (usage-weighted)</td><td class="num">${num(s.ahi)} / ${num(s.ai)} / ${num(s.hi)}</td></tr>
-      <tr><td>Leak median / 95th % (L/min)</td><td class="num">${num(s.leakMed)} / ${num(s.leak95)}</td></tr>
-      <tr><td>Pressure median / 95th % / max (cmH₂O)</td><td class="num">${num(s.pressMed)} / ${num(s.press95)} / ${num(s.pressMax)}</td></tr>
-      <tr><td>Compliance (≥ 4 h on ≥ 70% of nights)</td><td class="num ${compliant ? 'good' : 'bad'}"><b>${compliant ? 'Met' : 'Not met'}</b></td></tr></table>
+    <p><b>Compliance (≥ 4 h on ≥ 70% of nights):</b> <span class="${compliant ? 'good' : 'bad'}"><b>${compliant ? 'Met' : 'Not met'}</b></span></p>
+    <table>${sr.map(r => r.h ? `<tr><th colspan="2" style="padding-top:12px;color:var(--ink)">${r.h}</th></tr>` : `<tr><td>${r.l}</td><td class="num">${r.v}</td></tr>`).join('')}</table>
     <div class="grid2" style="margin-top:16px"><div class="chartbox"><canvas id="rUsage"></canvas></div><div class="chartbox"><canvas id="rAhi"></canvas></div>
     <div class="chartbox"><canvas id="rLeak"></canvas></div><div class="chartbox"><canvas id="rPress"></canvas></div></div>
     <h3>Nightly detail</h3><div class="tablewrap"><table><tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">Leak 95%</th><th class="num">Press 95%</th></tr>
-    ${rows.map(r => `<tr><td>${r.session_date}</td><td class="num">${hm(r.usage_minutes)}</td><td class="num">${num(r.ahi)}</td><td class="num">${num(r.leak_95)}</td><td class="num">${num(r.press_95)}</td></tr>`).join('')}</table></div>
+    ${rows.map(r => `<tr><td>${r.session_date}</td><td class="num">${hm(r.usage_minutes)}</td><td class="num">${num(r.ahi)}</td><td class="num">${num(pick(r, 'lk', 'p95', 'leak_95'))}</td><td class="num">${num(pick(r, 'mp', 'p95', 'press_95'))}</td></tr>`).join('')}</table></div>
     <p class="muted" style="font-size:12px;margin-top:14px">Generated ${new Date().toLocaleString()} from data read from the device SD card. Not a diagnosis; interpret with a clinician.</p></section>`;
-  drawTrendCharts(rows, ['rUsage', 'rAhi', 'rLeak', 'rPress']);
+  drawTrendCharts(rows, { usage: 'rUsage', ahi: 'rAhi', leak: 'rLeak', press: 'rPress' });
 };
 $('btnPrint').onclick = () => {
   if (!$('reportCard')) $('btnReport').click();
