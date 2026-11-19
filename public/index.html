@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPAP Data Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f5f7fa; --card:#fff; --ink:#1c2430; --muted:#667085; --line:#e3e8ef;
+  --brand:#0f766e; --brand-ink:#fff; --warn:#b45309; --bad:#b42318; --good:#15803d;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#10161d; --card:#18212b; --ink:#e6ebf1; --muted:#97a3b3; --line:#2a3644; --brand:#2dd4bf; --brand-ink:#06201d; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.hidden{display:none!important}
+h1{font-size:18px;margin:0}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--brand);color:var(--brand-ink);border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.danger{background:var(--bad);color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;width:100%;max-width:420px}
+.top{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.top select{width:auto;min-width:180px}
+nav{display:flex;gap:4px;padding:8px 20px 0;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{background:transparent;color:var(--muted);border-radius:8px 8px 0 0;border-bottom:3px solid transparent;padding:10px 14px}
+nav button.active{color:var(--ink);border-bottom-color:var(--brand)}
+main{padding:20px;max-width:1200px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .v{font-size:24px;font-weight:700}
+.kpi .l{font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.chartbox{position:relative;height:230px}
+.row{display:flex;gap:12px;align-items:end;flex-wrap:wrap}
+.row>div{flex:1;min-width:140px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right}
+.tablewrap{overflow-x:auto}
+tr.click{cursor:pointer}
+tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
+.msg{padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.msg.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.msg.info{background:color-mix(in srgb,var(--brand) 12%,transparent)}
+.muted{color:var(--muted)}
+.good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+.log{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:180px;overflow:auto;white-space:pre-wrap}
+.link{background:none;color:var(--brand);padding:0;font-weight:500;text-decoration:underline}
+@media print{
+  body{background:#fff;color:#000}
+  .top,nav,.noprint,#tabs{display:none!important}
+  main{padding:0;max-width:none}
+  .card,.kpi{border-color:#bbb;break-inside:avoid}
+  section.tab:not(.printing){display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Connection setup ============ -->
+<div id="setup" class="center hidden">
+  <div class="box">
+    <h1>Connect to Supabase</h1>
+    <p class="muted">Find these in Supabase: Project Settings &rarr; API. Use the <b>anon / publishable</b> key, never the service_role key.</p>
+    <label>Project URL</label>
+    <input id="cfgUrl" placeholder="https://xxxx.supabase.co">
+    <label>Anon (public) key</label>
+    <input id="cfgKey" placeholder="eyJ...">
+    <div id="setupMsg"></div>
+    <p><button id="cfgSave">Save and continue</button></p>
+  </div>
+</div>
+
+<!-- ============ Login ============ -->
+<div id="auth" class="center hidden">
+  <div class="box">
+    <h1>CPAP Data Manager</h1>
+    <p class="muted">Sign in to view and store AirSense 10 data.</p>
+    <label>Email</label>
+    <input id="authEmail" type="email" autocomplete="username">
+    <label>Password</label>
+    <input id="authPass" type="password" autocomplete="current-password">
+    <div id="authMsg"></div>
+    <p class="row" style="margin-top:14px">
+      <button id="btnLogin" style="flex:1">Sign in</button>
+      <button id="btnSignup" class="ghost" style="flex:1">Create account</button>
+    </p>
+    <p><button class="link" id="btnResetCfg">Change Supabase connection</button></p>
+  </div>
+</div>
+
+<!-- ============ App ============ -->
+<div id="app" class="hidden">
+  <header class="top">
+    <h1>CPAP Data Manager <span class="muted" style="font-weight:400">· AirSense 10</span></h1>
+    <div class="right">
+      <select id="patientSel" aria-label="Patient"></select>
+      <span id="userEmail" class="muted"></span>
+      <button class="ghost" id="btnLogout">Sign out</button>
+    </div>
+  </header>
+  <nav id="tabs">
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="nights">Nights</button>
+    <button data-tab="import">Import SD card</button>
+    <button data-tab="report">Report</button>
+    <button data-tab="patients">Patients</button>
+  </nav>
+
+  <main>
+    <!-- Dashboard -->
+    <section id="tab-dashboard" class="tab">
+      <div class="card noprint">
+        <div class="row">
+          <div style="max-width:220px">
+            <label>Period</label>
+            <select id="dashRange">
+              <option value="30">Last 30 nights</option>
+              <option value="90" selected>Last 90 nights</option>
+              <option value="180">Last 180 nights</option>
+              <option value="365">Last 365 nights</option>
+              <option value="0">All data</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div id="dashEmpty" class="msg info hidden">No data yet for this patient. Go to <b>Import SD card</b> to load the machine's data.</div>
+      <div id="dashBody">
+        <div class="kpis" id="dashKpis"></div>
+        <div class="grid2">
+          <div class="card"><h3 style="margin-top:0">Usage per night (hours)</h3><div class="chartbox"><canvas id="chUsage"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">AHI (events/hour)</h3><div class="chartbox"><canvas id="chAhi"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Leak, 95th percentile (L/min)</h3><div class="chartbox"><canvas id="chLeak"></canvas></div></div>
+          <div class="card"><h3 style="margin-top:0">Pressure (cmH₂O)</h3><div class="chartbox"><canvas id="chPress"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Nights -->
+    <section id="tab-nights" class="tab hidden">
+      <div class="card">
+        <div class="row noprint" style="margin-bottom:10px">
+          <h2 style="margin:0;flex:2">Nightly records</h2>
+          <div style="flex:0 0 auto"><button class="ghost" id="btnCsv">Export CSV</button></div>
+        </div>
+        <div class="tablewrap"><table id="nightsTable"></table></div>
+        <p class="muted" style="font-size:13px">Click a night to see its pressure/leak curve and events.</p>
+      </div>
+      <div id="nightDetail"></div>
+    </section>
+
+    <!-- Import -->
+    <section id="tab-import" class="tab hidden">
+      <div class="card">
+        <h2>Import from SD card</h2>
+        <ol class="muted" style="margin-top:0">
+          <li>Remove the SD card from the AirSense 10 and put it in this computer.</li>
+          <li>Choose the <b>whole SD card folder</b> (the one containing <code>STR.edf</code> and <code>DATALOG</code>).</li>
+          <li>Check the preview, then press <b>Save to Supabase</b>.</li>
+        </ol>
+        <p class="muted" style="font-size:13px">Files are read inside your browser. Only the parsed results (nightly numbers, per-minute curves, events) are uploaded.</p>
+        <label>Patient</label>
+        <select id="impPatient"></select>
+        <label>SD card folder</label>
+        <input type="file" id="impFolder" webkitdirectory directory multiple>
+        <p class="muted" style="font-size:13px;margin:4px 0 0">If your browser can't pick folders, select the files instead:</p>
+        <input type="file" id="impFiles" multiple accept=".edf">
+        <label style="display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:12px">
+          <input type="checkbox" id="impOnlyNew" checked style="width:auto"> Only import nights not already saved
+        </label>
+        <p><button id="btnParse">Read files</button></p>
+        <div id="impMsg"></div>
+        <div id="impLog" class="log hidden"></div>
+        <div id="impPreview"></div>
+      </div>
+    </section>
+
+    <!-- Report -->
+    <section id="tab-report" class="tab hidden">
+      <div class="card noprint">
+        <h2>Compliance report</h2>
+        <div class="row">
+          <div><label>From</label><input type="date" id="repFrom"></div>
+          <div><label>To</label><input type="date" id="repTo"></div>
+          <div style="flex:0 0 auto"><button id="btnReport">Generate</button></div>
+          <div style="flex:0 0 auto"><button class="ghost" id="btnPrint">Print / Save as PDF</button></div>
+        </div>
+      </div>
+      <div id="reportOut"></div>
+    </section>
+
+    <!-- Patients -->
+    <section id="tab-patients" class="tab hidden">
+      <div class="card">
+        <h2 id="patFormTitle">Add patient</h2>
+        <input type="hidden" id="patId">
+        <div class="row">
+          <div><label>Full name *</label><input id="patName"></div>
+          <div><label>IC / reference</label><input id="patRef"></div>
+          <div><label>Date of birth</label><input type="date" id="patDob"></div>
+        </div>
+        <div class="row">
+          <div><label>Device serial</label><input id="patSerial"></div>
+          <div style="flex:2"><label>Notes</label><input id="patNotes"></div>
+        </div>
+        <div id="patMsg"></div>
+        <p class="row" style="margin-top:12px">
+          <button id="btnPatSave" style="flex:0 0 auto">Save patient</button>
+          <button id="btnPatCancel" class="ghost hidden" style="flex:0 0 auto">Cancel edit</button>
+        </p>
+      </div>
+      <div class="card">
+        <h2>Patients</h2>
+        <div class="tablewrap"><table id="patTable"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// =====================================================================
+// SETTINGS: you may paste your Supabase values here, or leave blank and
+// the app will ask for them on first run (stored in this browser only).
+// =====================================================================
+const CONFIG = Object.assign({ SUPABASE_URL: '', SUPABASE_ANON_KEY: '' }, window.APP_CONFIG || {});
+
+// ==PARSER START==
+// ---------- date helpers (UTC arithmetic only, so no timezone/DST surprises) ----------
+const pad = n => String(n).padStart(2, '0');
+const startMs = s => Date.UTC(s.y, s.mo - 1, s.d, s.h, s.mi, s.s);
+function fmtTs(ms) {
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+const fmtDate = ms => fmtTs(ms).slice(0, 10);
+const DAY_MS = 86400000;
+
+// ---------- generic EDF / EDF+ reader ----------
+function parseEDF(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  const dec = new TextDecoder('latin1');
+  let p = 0;
+  const txt = (o, l) => dec.decode(u8.subarray(o, o + l)).trim();
+  const ns = parseInt(txt(252, 4), 10);
+  const hdrBytes = parseInt(txt(184, 8), 10);
+  const recDur = parseFloat(txt(244, 8)) || 1;
+  const sd = txt(168, 8).split('.').map(Number), st = txt(176, 8).split('.').map(Number);
+  if (!(ns > 0) || !(hdrBytes > 0) || sd.length < 3 || sd.some(isNaN)) throw new Error('Not a valid EDF file');
+  const year = sd[2] < 85 ? 2000 + sd[2] : 1900 + sd[2];
+  const start = { y: year, mo: sd[1], d: sd[0], h: st[0] || 0, mi: st[1] || 0, s: st[2] || 0 };
+  p = 256;
+  const field = len => { const a = []; for (let i = 0; i < ns; i++) a.push(txt(p + i * len, len)); p += ns * len; return a; };
+  const labels = field(16); field(80); field(8);
+  const pmin = field(8).map(Number), pmax = field(8).map(Number);
+  const dmin = field(8).map(Number), dmax = field(8).map(Number);
+  field(80);
+  const spr = field(8).map(n => parseInt(n, 10)); field(32);
+  const recSize = spr.reduce((a, b) => a + b, 0) * 2;
+  let nrec = Math.floor((buf.byteLength - hdrBytes) / recSize);
+  const hdrRec = parseInt(txt(236, 8), 10);
+  if (hdrRec > 0 && hdrRec < nrec) nrec = hdrRec;
+  const sigs = labels.map((label, i) => ({
+    label, spr: spr[i], ann: /annotations/i.test(label),
+    vals: /annotations/i.test(label) ? null : new Float64Array(nrec * spr[i]), raw: [],
+    gain: dmax[i] !== dmin[i] ? (pmax[i] - pmin[i]) / (dmax[i] - dmin[i]) : 1, off: pmin[i], dmin: dmin[i]
+  }));
+  for (let r = 0; r < nrec; r++) {
+    let o = hdrBytes + r * recSize;
+    for (const s of sigs) {
+      if (s.ann) { s.raw.push(u8.subarray(o, o + s.spr * 2)); }
+      else for (let k = 0; k < s.spr; k++) s.vals[r * s.spr + k] = (dv.getInt16(o + 2 * k, true) - s.dmin) * s.gain + s.off;
+      o += s.spr * 2;
+    }
+  }
+  return { start, recDur, nrec, sigs };
+}
+
+// ---------- STR.edf: one record per therapy day ----------
+function parseSTR(buf) {
+  const e = parseEDF(buf);
+  const norm = s => s.toLowerCase().replace(/\s+/g, '');
+  const get = (...res) => { for (const re of res) { const s = e.sigs.find(s => !s.ann && re.test(norm(s.label))); if (s) return s; } return null; };
+  const on = get(/^maskon$/), off = get(/^maskoff$/);
+  if (!on || !off) throw new Error('STR.edf: cannot find MaskOn/MaskOff. Labels found: ' + e.sigs.map(s => s.label).join(', '));
+  const S = {
+    ahi: get(/^ahi$/), ai: get(/^ai$/), hi: get(/^hi$/), oai: get(/^oai$/), cai: get(/^cai$/), uai: get(/^uai$/),
+    l50: get(/^leak\.50$/, /^leak.*(50|med)/), l95: get(/^leak\.95$/, /^leak.*95/), lmax: get(/^leak\.max$/, /^leak.*max/),
+    p50: get(/^maskpress\.50$/, /^maskpress.*(50|med)/), p95: get(/^maskpress\.95$/, /^maskpress.*95/), pmax: get(/^maskpress\.max$/, /^maskpress.*max/),
+    rr: get(/^resprate\.50$/, /^resprate.*(50|med)/), mv: get(/^minvent\.50$/, /^minvent.*(50|med)/)
+  };
+  const v = (sig, r) => { if (!sig) return null; const x = sig.vals[r * sig.spr]; return (x === undefined || x < 0 || isNaN(x)) ? null : x; };
+  // ResMed stores leak in L/s; convert to L/min (heuristic guard in case a firmware already uses L/min)
+  let maxLeak = 0;
+  for (let r = 0; r < e.nrec; r++) { const x = v(S.lmax, r); if (x !== null && x > maxLeak) maxLeak = x; }
+  const leakK = maxLeak > 0 && maxLeak < 5 ? 60 : 1;
+  const rnd = (x, d) => x === null ? null : Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
+  const days = [];
+  for (let r = 0; r < e.nrec; r++) {
+    const base = startMs(e.start) + r * DAY_MS;
+    const periods = [];
+    for (let k = 0; k < Math.min(on.spr, off.spr); k++) {
+      const a = on.vals[r * on.spr + k], b = off.vals[r * off.spr + k];
+      if (a >= 0 && b > a) periods.push([a, b]);
+    }
+    const usage = periods.reduce((t, [a, b]) => t + (b - a), 0);
+    days.push({
+      _r: r, session_date: fmtDate(base), noonMs: Date.UTC(...fmtDate(base).split('-').map((x, i) => i === 1 ? Number(x) - 1 : Number(x)), 12),
+      first_on: periods.length ? fmtTs(base + Math.min(...periods.map(p => p[0])) * 60000) : null,
+      last_off: periods.length ? fmtTs(base + Math.max(...periods.map(p => p[1])) * 60000) : null,
+      usage_minutes: rnd(usage, 1), mask_sessions: periods.length,
+      ahi: rnd(v(S.ahi, r), 2), ai: rnd(v(S.ai, r), 2), hi: rnd(v(S.hi, r), 2),
+      oai: rnd(v(S.oai, r), 2), cai: rnd(v(S.cai, r), 2), uai: rnd(v(S.uai, r), 2),
+      leak_50: rnd(v(S.l50, r) === null ? null : v(S.l50, r) * leakK, 2),
+      leak_95: rnd(v(S.l95, r) === null ? null : v(S.l95, r) * leakK, 2),
+      leak_max: rnd(v(S.lmax, r) === null ? null : v(S.lmax, r) * leakK, 2),
+      press_50: rnd(v(S.p50, r), 2), press_95: rnd(v(S.p95, r), 2), press_max: rnd(v(S.pmax, r), 2),
+      resp_rate_50: rnd(v(S.rr, r), 1), min_vent_50: rnd(v(S.mv, r), 1),
+      series: null, events: []
+    });
+  }
+  // Keep days between the first and last night that was actually used (zero-use days inside that span are kept)
+  const used = days.map((d, i) => d.usage_minutes > 0 ? i : -1).filter(i => i >= 0);
+  if (!used.length) return [];
+  const kept = days.slice(used[0], used[used.length - 1] + 1);
+  kept.forEach(d => { if (d.usage_minutes === 0) { d.ahi = d.ai = d.hi = d.oai = d.cai = d.uai = null; d.leak_50 = d.leak_95 = d.leak_max = null; d.press_50 = d.press_95 = d.press_max = null; } });
+  return kept;
+}
+
+// ---------- DATALOG file name -> therapy day ----------
+function detailInfo(name) {
+  const m = name.match(/(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_(PLD|EVE|BRP|CSL|SAD)\.edf$/i);
+  if (!m) return null;
+  const ms = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  return { kind: m[7].toUpperCase(), ms, day: fmtDate(ms - 12 * 3600000) };
+}
+
+// ---------- PLD: pressure/leak, reduced to one point per minute ----------
+function parsePLD(buf, fileMs, noonMs) {
+  const e = parseEDF(buf);
+  const pick = re => e.sigs.find(s => !s.ann && re.test(s.label.toLowerCase()));
+  const pr = pick(/^maskpress/) || pick(/^press/), lk = pick(/^leak/);
+  const buckets = new Map();
+  const add = (sig, kind) => {
+    if (!sig) return;
+    const step = e.recDur / sig.spr, offs = (fileMs - noonMs) / 1000;
+    for (let i = 0; i < sig.vals.length; i++) {
+      const x = sig.vals[i];
+      if (isNaN(x) || x < 0 || (kind === 'p' && x === 0)) continue;
+      const min = Math.floor((offs + i * step) / 60);
+      let b = buckets.get(min); if (!b) { b = { ps: 0, pn: 0, ls: 0, ln: 0 }; buckets.set(min, b); }
+      if (kind === 'p') { b.ps += x; b.pn++; } else { b.ls += x * 60; b.ln++; }
+    }
+  };
+  add(pr, 'p'); add(lk, 'l');
+  return [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([m, b]) => [m, b.pn ? b.ps / b.pn : null, b.ln ? b.ls / b.ln : null]);
+}
+
+// ---------- EVE: EDF+ annotations -> events ----------
+function classifyEvent(t) {
+  t = t.toLowerCase();
+  if (t.includes('obstructive')) return 'Obstructive Apnea';
+  if (t.includes('central')) return 'Central Apnea';
+  if (t.includes('hypopnea')) return 'Hypopnea';
+  if (t.includes('apnea')) return 'Apnea';
+  if (t.includes('arousal')) return 'Arousal';
+  return null;
+}
+function parseEVE(buf, fileMs, noonMs) {
+  const e = parseEDF(buf), ann = e.sigs.find(s => s.ann), out = [];
+  if (!ann) return out;
+  const dec = new TextDecoder('latin1'), offs = (fileMs - noonMs) / 1000;
+  for (const rec of ann.raw) {
+    for (const tal of dec.decode(rec).split('\0')) {
+      const m = tal.match(/^([+-][\d.]+)(?:\x15([\d.]+))?\x14([\s\S]*)$/);
+      if (!m) continue;
+      for (const t of m[3].split('\x14').map(s => s.trim()).filter(Boolean)) {
+        const type = classifyEvent(t);
+        if (type) out.push({ event_type: type, onset_sec: Math.round((offs + parseFloat(m[1])) * 10) / 10, duration_sec: m[2] ? parseFloat(m[2]) : 0 });
+      }
+    }
+  }
+  return out;
+}
+
+// merge per-minute points from several PLD files into one series object
+// Summarised to one point per `step` minutes (default 5) so a night costs only a few KB in the database.
+function buildSeries(points, step = 5) {
+  const b = new Map();
+  for (const [m, pp, ll] of points) {
+    const k = Math.floor(m / step) * step;
+    let x = b.get(k); if (!x) { x = { ps: 0, pn: 0, ls: 0, ln: 0 }; b.set(k, x); }
+    if (pp !== null) { x.ps += pp; x.pn++; }
+    if (ll !== null) { x.ls += ll; x.ln++; }
+  }
+  const keys = [...b.keys()].sort((a, c) => a - c), t = [], p = [], l = [];
+  for (const k of keys) {
+    const x = b.get(k);
+    t.push(k);
+    p.push(x.pn ? Math.round(x.ps / x.pn * 10) / 10 : null);
+    l.push(x.ln ? Math.round(x.ls / x.ln * 10) / 10 : null);
+  }
+  return t.length ? { t, p, l } : null;
+}
+// ==PARSER END==
+
+// =====================================================================
+// App
+// =====================================================================
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (x, d = 1) => (x === null || x === undefined || isNaN(x)) ? '–' : Number(x).toFixed(d);
+const hm = min => { const t = Math.round(min || 0); return `${Math.floor(t / 60)}h ${pad(t % 60)}m`; };
+const clock = m => { const x = (((720 + Math.round(m)) % 1440) + 1440) % 1440; return `${pad(Math.floor(x / 60))}:${pad(x % 60)}`; };
+const show = (el, on) => el.classList.toggle('hidden', !on);
+function msg(el, text, kind = 'info') { el.innerHTML = text ? `<div class="msg ${kind}">${esc(text)}</div>` : ''; }
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+
+let sb = null, user = null, patients = [], patientId = null, sessions = [], pending = null;
+const charts = {};
+
+const COLS = 'id,session_date,first_on,last_off,usage_minutes,mask_sessions,ahi,ai,hi,oai,cai,uai,leak_50,leak_95,leak_max,press_50,press_95,press_max,resp_rate_50,min_vent_50';
+
+// ---------- boot ----------
+async function boot() {
+  let url = CONFIG.SUPABASE_URL, key = CONFIG.SUPABASE_ANON_KEY;
+  if (!url || !key) { url = store.get('cpap_url') || ''; key = store.get('cpap_key') || ''; }
+  if (!url || !key) { show($('setup'), true); return; }
+  sb = window.supabase.createClient(url, key);
+  sb.auth.onAuthStateChange((_e, s) => { if (!s && user) { user = null; showAuth(); } });
+  const { data } = await sb.auth.getSession();
+  if (data.session) { user = data.session.user; await startApp(); } else showAuth();
+}
+function showAuth() { show($('setup'), false); show($('app'), false); show($('auth'), true); }
+
+$('cfgSave').onclick = () => {
+  const u = $('cfgUrl').value.trim(), k = $('cfgKey').value.trim();
+  if (!/^https:\/\/.+\.supabase\.(co|in)/.test(u) || k.length < 20) return msg($('setupMsg'), 'Enter the full project URL and the anon key.', 'err');
+  store.set('cpap_url', u); store.set('cpap_key', k); location.reload();
+};
+$('btnResetCfg').onclick = () => { store.del('cpap_url'); store.del('cpap_key'); location.reload(); };
+
+async function doAuth(signup) {
+  const email = $('authEmail').value.trim(), password = $('authPass').value;
+  if (!email || password.length < 6) return msg($('authMsg'), 'Enter an email and a password of at least 6 characters.', 'err');
+  msg($('authMsg'), signup ? 'Creating account…' : 'Signing in…');
+  const { data, error } = signup ? await sb.auth.signUp({ email, password }) : await sb.auth.signInWithPassword({ email, password });
+  if (error) return msg($('authMsg'), error.message, 'err');
+  if (!data.session) return msg($('authMsg'), 'Account created. Check your email to confirm it, then sign in.', 'ok');
+  user = data.user; msg($('authMsg'), ''); await startApp();
+}
+$('btnLogin').onclick = () => doAuth(false);
+$('btnSignup').onclick = () => doAuth(true);
+$('authPass').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(false); });
+$('btnLogout').onclick = async () => { await sb.auth.signOut(); user = null; showAuth(); };
+
+async function startApp() {
+  show($('auth'), false); show($('setup'), false); show($('app'), true);
+  $('userEmail').textContent = user.email || '';
+  await loadPatients();
+  const today = new Date(), back = new Date(Date.now() - 89 * DAY_MS);
+  $('repTo').value = today.toISOString().slice(0, 10); $('repFrom').value = back.toISOString().slice(0, 10);
+  if (!patients.length) switchTab('patients'); else { await selectPatient(patientId); switchTab('dashboard'); }
+}
+
+// ---------- tabs ----------
+function switchTab(name) {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('section.tab').forEach(s => show(s, s.id === 'tab-' + name));
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) switchTab(b.dataset.tab); });
+
+// ---------- patients ----------
+async function loadPatients() {
+  const { data, error } = await sb.from('patients').select('*').order('full_name');
+  if (error) { alert('Could not load patients: ' + error.message + '\n\nHave you run schema.sql in Supabase?'); return; }
+  patients = data;
+  if (!patients.find(p => p.id === patientId)) patientId = store.get('cpap_patient');
+  if (!patients.find(p => p.id === patientId)) patientId = patients[0]?.id || null;
+  const opts = patients.map(p => `<option value="${p.id}">${esc(p.full_name)}${p.ic_or_ref ? ' (' + esc(p.ic_or_ref) + ')' : ''}</option>`).join('');
+  $('patientSel').innerHTML = opts || '<option value="">No patients</option>';
+  $('impPatient').innerHTML = opts || '<option value="">No patients</option>';
+  if (patientId) { $('patientSel').value = patientId; $('impPatient').value = patientId; }
+  renderPatientsTable();
+}
+function renderPatientsTable() {
+  $('patTable').innerHTML = '<tr><th>Name</th><th>IC / ref</th><th>DOB</th><th>Device serial</th><th>Notes</th><th></th></tr>' +
+    patients.map(p => `<tr><td>${esc(p.full_name)}</td><td>${esc(p.ic_or_ref)}</td><td>${esc(p.date_of_birth)}</td><td>${esc(p.device_serial)}</td><td>${esc(p.notes)}</td>
+    <td class="num"><button class="ghost" data-edit="${p.id}">Edit</button> <button class="danger" data-del="${p.id}">Delete</button></td></tr>`).join('');
+}
+function resetPatForm() {
+  ['patId', 'patName', 'patRef', 'patDob', 'patSerial', 'patNotes'].forEach(i => $(i).value = '');
+  $('patFormTitle').textContent = 'Add patient'; show($('btnPatCancel'), false);
+}
+$('btnPatCancel').onclick = resetPatForm;
+$('btnPatSave').onclick = async () => {
+  const name = $('patName').value.trim();
+  if (!name) return msg($('patMsg'), 'Name is required.', 'err');
+  const row = { full_name: name, ic_or_ref: $('patRef').value.trim() || null, date_of_birth: $('patDob').value || null, device_serial: $('patSerial').value.trim() || null, notes: $('patNotes').value.trim() || null };
+  const id = $('patId').value;
+  const { data, error } = id ? await sb.from('patients').update(row).eq('id', id).select() : await sb.from('patients').insert(row).select();
+  if (error) return msg($('patMsg'), error.message, 'err');
+  msg($('patMsg'), 'Saved.', 'ok'); resetPatForm();
+  if (!id && data[0]) patientId = data[0].id;
+  await loadPatients(); await selectPatient(patientId);
+};
+$('patTable').addEventListener('click', async e => {
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+  if (ed) {
+    const p = patients.find(x => x.id === ed.dataset.edit);
+    $('patId').value = p.id; $('patName').value = p.full_name; $('patRef').value = p.ic_or_ref || ''; $('patDob').value = p.date_of_birth || '';
+    $('patSerial').value = p.device_serial || ''; $('patNotes').value = p.notes || '';
+    $('patFormTitle').textContent = 'Edit patient'; show($('btnPatCancel'), true); window.scrollTo(0, 0);
+  }
+  if (del) {
+    const p = patients.find(x => x.id === del.dataset.del);
+    if (!confirm(`Delete ${p.full_name} and ALL their stored CPAP data? This cannot be undone.`)) return;
+    const { error } = await sb.from('patients').delete().eq('id', p.id);
+    if (error) return msg($('patMsg'), error.message, 'err');
+    if (patientId === p.id) patientId = null;
+    await loadPatients(); await selectPatient(patientId);
+  }
+});
+$('patientSel').onchange = () => selectPatient($('patientSel').value);
+async function selectPatient(id) {
+  patientId = id || null; if (patientId) store.set('cpap_patient', patientId);
+  if (patientId) { $('patientSel').value = patientId; $('impPatient').value = patientId; }
+  sessions = []; $('nightDetail').innerHTML = ''; $('reportOut').innerHTML = '';
+  if (patientId) sessions = await fetchSessions(patientId);
+  renderDashboard(); renderNights();
+}
+async function fetchSessions(pid) {
+  let all = [], from = 0;
+  for (;;) {
+    const { data, error } = await sb.from('sessions').select(COLS).eq('patient_id', pid).order('session_date', { ascending: true }).range(from, from + 999);
+    if (error) { alert('Could not load sessions: ' + error.message); break; }
+    all = all.concat(data); if (data.length < 1000) break; from += 1000;
+  }
+  return all;
+}
+
+// ---------- stats ----------
+const avg = a => { a = a.filter(x => x !== null && x !== undefined && !isNaN(x)); return a.length ? a.reduce((s, x) => s + x, 0) / a.length : null; };
+function summarize(rows) {
+  const n = rows.length, used = rows.filter(r => r.usage_minutes > 0);
+  const ge4 = rows.filter(r => r.usage_minutes >= 240).length;
+  const totalMin = rows.reduce((s, r) => s + (r.usage_minutes || 0), 0);
+  const weighted = key => { const w = used.filter(r => r[key] !== null); const t = w.reduce((s, r) => s + r.usage_minutes, 0); return t ? w.reduce((s, r) => s + r[key] * r.usage_minutes, 0) / t : null; };
+  return {
+    nights: n, usedNights: used.length, ge4, ge4pct: n ? ge4 / n * 100 : 0,
+    avgUsageMin: n ? totalMin / n : 0, avgUsedMin: used.length ? totalMin / used.length : 0,
+    ahi: weighted('ahi'), ai: weighted('ai'), hi: weighted('hi'), leak95: avg(used.map(r => r.leak_95)), leakMed: avg(used.map(r => r.leak_50)),
+    press95: avg(used.map(r => r.press_95)), pressMed: avg(used.map(r => r.press_50)), pressMax: used.length ? Math.max(...used.map(r => r.press_max || 0)) : null
+  };
+}
+const kpi = (v, l, cls = '') => `<div class="kpi"><div class="v ${cls}">${v}</div><div class="l">${l}</div></div>`;
+function kpiHtml(s) {
+  return kpi(s.nights, 'Nights in period') +
+    kpi(hm(s.avgUsageMin), 'Average usage (all nights)') +
+    kpi(num(s.ge4pct, 0) + '%', 'Nights ≥ 4 h', s.ge4pct >= 70 ? 'good' : 'bad') +
+    kpi(num(s.ahi, 1), 'Average AHI', s.ahi === null ? '' : s.ahi < 5 ? 'good' : s.ahi < 15 ? 'warn' : 'bad') +
+    kpi(num(s.leak95, 1), 'Leak 95% (L/min)') +
+    kpi(num(s.press95, 1), 'Pressure 95% (cmH₂O)');
+}
+
+// ---------- charts ----------
+function makeChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const css = getComputedStyle(document.body);
+  Chart.defaults.color = css.getPropertyValue('--muted').trim() || '#667085';
+  Chart.defaults.borderColor = css.getPropertyValue('--line').trim() || '#e3e8ef';
+  charts[id] = new Chart($(id), cfg);
+}
+const BRAND = () => getComputedStyle(document.body).getPropertyValue('--brand').trim() || '#0f766e';
+function lineCfg(labels, sets, extra = {}) {
+  return { type: 'line', data: { labels, datasets: sets }, options: { responsive: true, maintainAspectRatio: false, animation: false, spanGaps: true, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: sets.length > 1, labels: { boxWidth: 12 } } }, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }, ...extra } };
+}
+function drawTrendCharts(rows, ids) {
+  const labels = rows.map(r => r.session_date.slice(5));
+  const ref = (val, name) => ({ label: name, data: rows.map(() => val), borderColor: '#b45309', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
+  const mk = (data, label, color) => ({ label, data, borderColor: color, backgroundColor: color + '33', borderWidth: 2, pointRadius: rows.length > 60 ? 0 : 2, tension: .2 });
+  makeChart(ids[0], { type: 'bar', data: { labels, datasets: [{ type: 'bar', label: 'Usage (h)', data: rows.map(r => +(r.usage_minutes / 60).toFixed(2)), backgroundColor: BRAND() + 'cc' }, { type: 'line', label: '4 h target', data: rows.map(() => 4), borderColor: '#b45309', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } }, plugins: { legend: { labels: { boxWidth: 12 } } } } });
+  makeChart(ids[1], lineCfg(labels, [mk(rows.map(r => r.ahi), 'AHI', BRAND()), ref(5, 'AHI = 5')]));
+  makeChart(ids[2], lineCfg(labels, [mk(rows.map(r => r.leak_95), 'Leak 95%', '#7c3aed'), mk(rows.map(r => r.leak_50), 'Leak median', '#0ea5e9')]));
+  makeChart(ids[3], lineCfg(labels, [mk(rows.map(r => r.press_95), 'Pressure 95%', '#dc2626'), mk(rows.map(r => r.press_50), 'Pressure median', '#f59e0b')], { scales: { x: { ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: false } } }));
+}
+
+// ---------- dashboard ----------
+function renderDashboard() {
+  const has = sessions.length > 0;
+  show($('dashEmpty'), !has); show($('dashBody'), has);
+  if (!has) return;
+  const n = +$('dashRange').value;
+  const rows = n ? sessions.slice(-n) : sessions;
+  $('dashKpis').innerHTML = kpiHtml(summarize(rows));
+  drawTrendCharts(rows, ['chUsage', 'chAhi', 'chLeak', 'chPress']);
+}
+$('dashRange').onchange = renderDashboard;
+
+// ---------- nights ----------
+function renderNights() {
+  const rows = [...sessions].reverse();
+  $('nightsTable').innerHTML = '<tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">AI</th><th class="num">HI</th><th class="num">Leak 95%</th><th class="num">Press 95%</th><th>Mask on → off</th></tr>' +
+    (rows.map(r => `<tr class="click" data-id="${r.id}"><td>${r.session_date}</td><td class="num ${r.usage_minutes >= 240 ? '' : 'warn'}">${hm(r.usage_minutes)}</td>
+      <td class="num ${r.ahi === null ? '' : r.ahi < 5 ? 'good' : r.ahi < 15 ? 'warn' : 'bad'}">${num(r.ahi)}</td><td class="num">${num(r.ai)}</td><td class="num">${num(r.hi)}</td>
+      <td class="num">${num(r.leak_95)}</td><td class="num">${num(r.press_95)}</td><td>${r.first_on ? r.first_on.slice(11, 16) : '–'} → ${r.last_off ? r.last_off.slice(11, 16) : '–'}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">No data yet.</td></tr>');
+}
+$('nightsTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) showNight(tr.dataset.id); });
+async function showNight(id) {
+  const r = sessions.find(x => x.id === id); if (!r) return;
+  $('nightDetail').innerHTML = '<div class="card muted">Loading…</div>';
+  const [s, ev] = await Promise.all([
+    sb.from('sessions').select('series').eq('id', id).single(),
+    sb.from('events').select('event_type,onset_sec,duration_sec').eq('session_id', id).order('onset_sec').limit(2000)
+  ]);
+  const series = s.data?.series, events = ev.data || [];
+  const counts = {}; events.forEach(x => counts[x.event_type] = (counts[x.event_type] || 0) + 1);
+  $('nightDetail').innerHTML = `<div class="card"><h2>Night of ${r.session_date} · ${hm(r.usage_minutes)} · AHI ${num(r.ahi)}</h2>
+    <div class="chartbox" style="height:280px">${series ? '<canvas id="chNight"></canvas>' : '<p class="muted">No per-minute curve stored for this night (import the DATALOG folder to get it).</p>'}</div>
+    <h3>Events (${events.length})</h3>
+    <p class="muted">${Object.entries(counts).map(([k, v]) => `${esc(k)}: ${v}`).join(' · ') || 'No event data stored for this night.'}</p>
+    ${events.length ? `<div class="tablewrap" style="max-height:260px;overflow:auto"><table><tr><th>Time</th><th>Type</th><th class="num">Duration (s)</th></tr>${events.slice(0, 300).map(x => `<tr><td>${clock(x.onset_sec / 60)}</td><td>${esc(x.event_type)}</td><td class="num">${num(x.duration_sec, 0)}</td></tr>`).join('')}</table></div>` : ''}</div>`;
+  if (series) {
+    makeChart('chNight', { type: 'line', data: { labels: series.t.map(clock), datasets: [
+      { label: 'Pressure (cmH₂O)', data: series.p, borderColor: '#dc2626', yAxisID: 'y', pointRadius: 0, borderWidth: 1.5 },
+      { label: 'Leak (L/min)', data: series.l, borderColor: '#7c3aed', yAxisID: 'y1', pointRadius: 0, borderWidth: 1.5 }] },
+      options: { responsive: true, maintainAspectRatio: false, animation: false, spanGaps: false, interaction: { mode: 'index', intersect: false }, scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { position: 'left', title: { display: true, text: 'cmH₂O' } }, y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'L/min' } } } } });
+  }
+  $('nightDetail').scrollIntoView({ behavior: 'smooth' });
+}
+$('btnCsv').onclick = () => {
+  if (!sessions.length) return;
+  const cols = ['session_date', 'first_on', 'last_off', 'usage_minutes', 'mask_sessions', 'ahi', 'ai', 'hi', 'oai', 'cai', 'uai', 'leak_50', 'leak_95', 'leak_max', 'press_50', 'press_95', 'press_max', 'resp_rate_50', 'min_vent_50'];
+  const csv = [cols.join(',')].concat(sessions.map(r => cols.map(c => r[c] ?? '').join(','))).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const p = patients.find(x => x.id === patientId);
+  a.download = `cpap_${(p?.full_name || 'patient').replace(/\W+/g, '_')}.csv`; a.click();
+};
+
+// ---------- import ----------
+function log(t) { const el = $('impLog'); show(el, true); el.textContent += t + '\n'; el.scrollTop = el.scrollHeight; }
+$('btnParse').onclick = async () => {
+  pending = null; $('impPreview').innerHTML = ''; $('impLog').textContent = ''; msg($('impMsg'), '');
+  const pid = $('impPatient').value;
+  if (!pid) return msg($('impMsg'), 'Add a patient first (Patients tab).', 'err');
+  const files = [...$('impFolder').files, ...$('impFiles').files];
+  const str = files.find(f => /(^|[\\/])STR\.edf$/i.test(f.webkitRelativePath || f.name));
+  if (!str) return msg($('impMsg'), 'STR.edf not found. Choose the SD card root folder (it contains STR.edf and a DATALOG folder).', 'err');
+  $('btnParse').disabled = true;
+  try {
+    log('Reading STR.edf…');
+    let nights = parseSTR(await str.arrayBuffer());
+    log(`Found ${nights.length} therapy nights in STR.edf.`);
+    if (!nights.length) throw new Error('No used nights found in STR.edf.');
+    if ($('impOnlyNew').checked) {
+      const have = new Set((pid === patientId ? sessions : await fetchSessions(pid)).map(s => s.session_date));
+      nights = nights.filter(n => !have.has(n.session_date));
+      log(`${nights.length} nights are new (not yet saved).`);
+    }
+    if (!nights.length) { msg($('impMsg'), 'Nothing new to import. All nights on this card are already saved.', 'ok'); return; }
+    const byDay = new Map(nights.map(n => [n.session_date, n]));
+    const detail = files.map(f => ({ f, i: detailInfo(f.name) })).filter(x => x.i && (x.i.kind === 'PLD' || x.i.kind === 'EVE') && byDay.has(x.i.day));
+    log(`Reading ${detail.length} detail files (PLD/EVE)…`);
+    const pts = new Map();
+    let done = 0, failed = 0;
+    for (const { f, i } of detail) {
+      const n = byDay.get(i.day);
+      try {
+        const buf = await f.arrayBuffer();
+        if (i.kind === 'PLD') { const a = pts.get(i.day) || []; parsePLD(buf, i.ms, n.noonMs).forEach(x => a.push(x)); pts.set(i.day, a); }
+        else parseEVE(buf, i.ms, n.noonMs).forEach(x => n.events.push(x));
+      } catch (err) { failed++; log(`  skipped ${f.name}: ${err.message}`); }
+      if (++done % 20 === 0) { log(`  ${done}/${detail.length}`); await new Promise(r => setTimeout(r)); }
+    }
+    for (const [day, a] of pts) byDay.get(day).series = buildSeries(a);
+    pending = { pid, nights };
+    const withSeries = nights.filter(n => n.series).length, evs = nights.reduce((s, n) => s + n.events.length, 0);
+    log(`Done. ${withSeries} nights with curves, ${evs} events${failed ? `, ${failed} files skipped` : ''}.`);
+    const s = summarize(nights);
+    $('impPreview').innerHTML = `<h3>Preview</h3><div class="kpis">${kpi(nights.length, 'Nights to save') + kpi(nights[0].session_date, 'First night') + kpi(nights[nights.length - 1].session_date, 'Last night') + kpi(num(s.ahi, 1), 'Average AHI') + kpi(hm(s.avgUsageMin), 'Average usage')}</div>
+      <p><button id="btnSave">Save to Supabase</button></p><div id="saveMsg"></div>`;
+    $('btnSave').onclick = saveImport;
+  } catch (err) { msg($('impMsg'), err.message, 'err'); }
+  finally { $('btnParse').disabled = false; }
+};
+async function saveImport() {
+  if (!pending) return;
+  const { pid, nights } = pending, btn = $('btnSave'); btn.disabled = true;
+  try {
+    let saved = 0;
+    for (let i = 0; i < nights.length; i += 15) {
+      const chunk = nights.slice(i, i + 15);
+      const rows = chunk.map(n => ({ patient_id: pid, session_date: n.session_date, first_on: n.first_on, last_off: n.last_off, usage_minutes: n.usage_minutes, mask_sessions: n.mask_sessions,
+        ahi: n.ahi, ai: n.ai, hi: n.hi, oai: n.oai, cai: n.cai, uai: n.uai, leak_50: n.leak_50, leak_95: n.leak_95, leak_max: n.leak_max,
+        press_50: n.press_50, press_95: n.press_95, press_max: n.press_max, resp_rate_50: n.resp_rate_50, min_vent_50: n.min_vent_50, series: n.series }));
+      const { data, error } = await sb.from('sessions').upsert(rows, { onConflict: 'patient_id,session_date' }).select('id,session_date');
+      if (error) throw error;
+      const idByDate = Object.fromEntries(data.map(d => [d.session_date, d.id]));
+      const ids = data.map(d => d.id);
+      const del = await sb.from('events').delete().in('session_id', ids); if (del.error) throw del.error;
+      const ev = chunk.flatMap(n => n.events.map(e => ({ session_id: idByDate[n.session_date], patient_id: pid, ...e })));
+      for (let j = 0; j < ev.length; j += 1000) { const r = await sb.from('events').insert(ev.slice(j, j + 1000)); if (r.error) throw r.error; }
+      saved += chunk.length; msg($('saveMsg'), `Saved ${saved} / ${nights.length} nights…`);
+    }
+    await sb.from('imports').insert({ patient_id: pid, nights_count: nights.length, date_from: nights[0].session_date, date_to: nights[nights.length - 1].session_date });
+    msg($('saveMsg'), `Saved ${nights.length} nights permanently to Supabase.`, 'ok');
+    pending = null; patientId = pid; await selectPatient(pid);
+  } catch (err) { msg($('saveMsg'), 'Save failed: ' + (err.message || JSON.stringify(err)), 'err'); btn.disabled = false; }
+}
+
+// ---------- report ----------
+$('btnReport').onclick = () => {
+  const from = $('repFrom').value, to = $('repTo').value;
+  if (!patientId) return;
+  const rows = sessions.filter(r => (!from || r.session_date >= from) && (!to || r.session_date <= to));
+  if (!rows.length) { $('reportOut').innerHTML = '<div class="msg info">No nights in that period.</div>'; return; }
+  const p = patients.find(x => x.id === patientId), s = summarize(rows);
+  const compliant = s.ge4pct >= 70;
+  $('reportOut').innerHTML = `<section class="card" id="reportCard"><h2 style="font-size:20px">CPAP Therapy Report</h2>
+    <p><b>${esc(p.full_name)}</b>${p.ic_or_ref ? ' · ' + esc(p.ic_or_ref) : ''}${p.date_of_birth ? ' · DOB ' + esc(p.date_of_birth) : ''}<br>
+    Device: ${esc(p.device_model || 'AirSense 10')}${p.device_serial ? ' · S/N ' + esc(p.device_serial) : ''}<br>Period: ${rows[0].session_date} to ${rows[rows.length - 1].session_date} (${rows.length} nights)</p>
+    <div class="kpis">${kpiHtml(s)}</div>
+    <table><tr><th>Measure</th><th class="num">Value</th></tr>
+      <tr><td>Nights used (any use)</td><td class="num">${s.usedNights} of ${s.nights}</td></tr>
+      <tr><td>Nights with ≥ 4 hours</td><td class="num">${s.ge4} (${num(s.ge4pct, 0)}%)</td></tr>
+      <tr><td>Average usage on nights used</td><td class="num">${hm(s.avgUsedMin)}</td></tr>
+      <tr><td>AHI / AI / HI (usage-weighted)</td><td class="num">${num(s.ahi)} / ${num(s.ai)} / ${num(s.hi)}</td></tr>
+      <tr><td>Leak median / 95th % (L/min)</td><td class="num">${num(s.leakMed)} / ${num(s.leak95)}</td></tr>
+      <tr><td>Pressure median / 95th % / max (cmH₂O)</td><td class="num">${num(s.pressMed)} / ${num(s.press95)} / ${num(s.pressMax)}</td></tr>
+      <tr><td>Compliance (≥ 4 h on ≥ 70% of nights)</td><td class="num ${compliant ? 'good' : 'bad'}"><b>${compliant ? 'Met' : 'Not met'}</b></td></tr></table>
+    <div class="grid2" style="margin-top:16px"><div class="chartbox"><canvas id="rUsage"></canvas></div><div class="chartbox"><canvas id="rAhi"></canvas></div>
+    <div class="chartbox"><canvas id="rLeak"></canvas></div><div class="chartbox"><canvas id="rPress"></canvas></div></div>
+    <h3>Nightly detail</h3><div class="tablewrap"><table><tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">Leak 95%</th><th class="num">Press 95%</th></tr>
+    ${rows.map(r => `<tr><td>${r.session_date}</td><td class="num">${hm(r.usage_minutes)}</td><td class="num">${num(r.ahi)}</td><td class="num">${num(r.leak_95)}</td><td class="num">${num(r.press_95)}</td></tr>`).join('')}</table></div>
+    <p class="muted" style="font-size:12px;margin-top:14px">Generated ${new Date().toLocaleString()} from data read from the device SD card. Not a diagnosis; interpret with a clinician.</p></section>`;
+  drawTrendCharts(rows, ['rUsage', 'rAhi', 'rLeak', 'rPress']);
+};
+$('btnPrint').onclick = () => {
+  if (!$('reportCard')) $('btnReport').click();
+  const sec = $('tab-report'); sec.classList.add('printing');
+  setTimeout(() => { window.print(); sec.classList.remove('printing'); }, 400);
+};
+
+boot();
+</script>
+</body>
+</html>

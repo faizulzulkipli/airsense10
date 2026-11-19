@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: cpap-data-manager
+    runtime: static
+    buildCommand: node build.js
+    staticPublishPath: ./public
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
