@@ -19,6 +19,37 @@ Saiz: kira-kira 20–30 KB satu malam, jadi 10 tahun ≈ 70–110 MB (had pelan 
 - **Statistics:** jadual Last night / 7 / 30 / 90 / 1 tahun / Semua (usaha, AHI, OA/CA/H/UA/RERA, RDI, tekanan, leak, pernafasan), serta jadual setiap malam dan eksport CSV.
 - **Report:** laporan boleh cetak / simpan PDF untuk doktor.
 
+## Dua gaya paparan (pilih di bahagian atas kanan)
+Pilihan **OSCAR style / SleepHQ style** diingat oleh browser. Data yang sama, cara analisis berbeza.
+
+| | OSCAR style | SleepHQ style |
+|---|---|---|
+| Tab | Overview, Daily, Statistics | Dashboard, Daily, Compare |
+| Fokus | Butiran teknikal dan semua isyarat | Ringkasan mudah, skor, pemerhatian |
+| Daily | Semua carta isyarat | Skor malam, pemerhatian, carta peristiwa + tekanan + leak. Butang "Show all signals" untuk selebihnya |
+
+**SleepHQ style** merangkumi:
+- **Therapy score (0–100):** penggunaan 40 mata, AHI 30, leak 20, berapa kali topeng ditanggalkan 10. Ini anggaran kami sendiri, **bukan** skor SleepHQ atau myAir.
+- **Insights:** pemerhatian automatik dalam ayat biasa (patuhan 4 jam/70% malam, AHI dan trend, jenis peristiwa dominan, apnea pusat, leak tinggi, tekanan mencecah had maksimum, malam terbaik/terburuk).
+- **Kalendar berwarna** mengikut guna / AHI / leak. Klik hari untuk buka malam itu.
+- **Perbandingan dengan tempoh sebelumnya** (anak panah naik/turun hijau atau merah) pada kad Dashboard.
+- **Compare:** banding dua julat tarikh bersebelahan (skor, guna, AHI, setiap jenis peristiwa, leak, tekanan, pernafasan) dengan perubahan dan peratus, serta carta peristiwa A lawan B.
+
+SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinspirasi oleh susun atur dan jenis ringkasan yang serupa, bukan salinan; skor dan pemerhatian dikira oleh aplikasi ini. Pemerhatian bukan nasihat perubatan.
+
+## Tab Report (laporan klinik, boleh cetak / simpan PDF)
+Pilih julat tarikh, tarikh temu janji (pilihan), tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas:
+1. **Therapy summary:** nama / tarikh lahir / temu janji, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
+2. **Findings:** item WATCH / NOTE (lonjakan leak, kadar pernafasan di luar 12–20, AHI ≥ 5, di bawah 4 jam, apnea pusat dominan, sebaran tekanan, leak biasa di bawah 24), "What's going well", "Nights that stood out" dan **Questions for your appointment** yang dijana daripada item WATCH.
+3. **Period finding + Event distribution + Period trends** (dengan sparkline dan arah) dan **Most recent night** (jadual peristiwa, masa dalam apnea, leak/tekanan/pernafasan/isi padu/snore/flow limitation: purata, P95, maks).
+4. **Nightly log:** setiap malam dengan bar skala AHI 0–5, jam, leak, P95, tekanan, peristiwa; median tempoh.
+5. **Machine settings:** tetapan terkini dan **perubahan tetapan sepanjang tempoh**.
+6. **Kalendar 90 malam** (AHI < 5 / 5–15 / 15–30 / 30+, boleh dibaca dalam cetakan hitam putih).
+7. **Time-series malam terkini:** tekanan, leak (garisan 24 L/min dan minit di atasnya), kadar pernafasan (jalur rujukan 12–20), serta penafian.
+
+Nama peranti dalam laporan datang daripada medan **Device model** pada tab Patients (cth. "AirSense 10 AutoSet").
+Nota: kod tetapan yang aplikasi tidak pasti maknanya (cth. jenis tiub) dipaparkan sebagai "code N", bukan diteka. Semak nama Mask Type / EPR / Humidity pada laporan pertama dengan skrin mesin anda.
+
 ## Yang BELUM ada berbanding OSCAR
 - **Gelombang aliran (flow waveform, 25 Hz dari fail BRP):** tidak disimpan kerana satu malam ≈ 2 juta titik (beratus MB untuk setahun). Beritahu jika mahu pilihan "lihat gelombang aliran daripada kad SD tanpa simpan".
 - **Unintentional leak** (leak tolak ventilasi topeng): memerlukan profil topeng. Paparan ialah jumlah leak seperti di skrin mesin.
