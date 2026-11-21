@@ -424,6 +424,7 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
         <div class="row">
           <div><label>Device model</label><input id="patModel" placeholder="AirSense 10 AutoSet"></div>
           <div><label>Mask type</label><select id="patMask"><option value="">Use the machine setting</option><option>Nasal</option><option>Full face</option><option>Nasal pillows</option></select></div>
+          <div><label>Tube type</label><select id="patTube"><option value="">Not shown in report</option><option>SlimLine (15 mm)</option><option>Standard (19 mm)</option><option>3 m</option></select></div>
           <div><label>Device serial</label><input id="patSerial"></div>
           <div style="flex:2"><label>Notes</label><input id="patNotes"></div>
         </div>
@@ -811,14 +812,14 @@ function renderPatientsTable() {
     <td class="num"><button class="ghost" data-edit="${p.id}">Edit</button> <button class="danger" data-del="${p.id}">Delete</button></td></tr>`).join('');
 }
 function resetPatForm() {
-  ['patId', 'patName', 'patRef', 'patDob', 'patModel', 'patMask', 'patSerial', 'patNotes'].forEach(i => $(i).value = '');
+  ['patId', 'patName', 'patRef', 'patDob', 'patModel', 'patMask', 'patTube', 'patSerial', 'patNotes'].forEach(i => $(i).value = '');
   $('patFormTitle').textContent = 'Add patient'; show($('btnPatCancel'), false);
 }
 $('btnPatCancel').onclick = resetPatForm;
 $('btnPatSave').onclick = async () => {
   const name = $('patName').value.trim();
   if (!name) return msg($('patMsg'), 'Name is required.', 'err');
-  const row = { full_name: name, ic_or_ref: $('patRef').value.trim() || null, date_of_birth: $('patDob').value || null, device_model: $('patModel').value.trim() || 'AirSense 10', ...($('patMask').value ? { mask_type: $('patMask').value } : {}), device_serial: $('patSerial').value.trim() || null, notes: $('patNotes').value.trim() || null };
+  const row = { full_name: name, ic_or_ref: $('patRef').value.trim() || null, date_of_birth: $('patDob').value || null, device_model: $('patModel').value.trim() || 'AirSense 10', ...($('patMask').value ? { mask_type: $('patMask').value } : {}), ...($('patTube').value ? { tube_type: $('patTube').value } : {}), device_serial: $('patSerial').value.trim() || null, notes: $('patNotes').value.trim() || null };
   const id = $('patId').value;
   const { data, error } = id ? await sb.from('patients').update(row).eq('id', id).select() : await sb.from('patients').insert(row).select();
   if (error) return msg($('patMsg'), error.message, 'err');
@@ -831,7 +832,7 @@ $('patTable').addEventListener('click', async e => {
   if (ed) {
     const p = patients.find(x => x.id === ed.dataset.edit);
     $('patId').value = p.id; $('patName').value = p.full_name; $('patRef').value = p.ic_or_ref || ''; $('patDob').value = p.date_of_birth || '';
-    $('patModel').value = p.device_model || ''; $('patMask').value = p.mask_type || ''; $('patSerial').value = p.device_serial || ''; $('patNotes').value = p.notes || '';
+    $('patModel').value = p.device_model || ''; $('patMask').value = p.mask_type || ''; $('patTube').value = p.tube_type || ''; $('patSerial').value = p.device_serial || ''; $('patNotes').value = p.notes || '';
     $('patFormTitle').textContent = 'Edit patient'; show($('btnPatCancel'), true); window.scrollTo(0, 0);
   }
   if (del) {
@@ -1450,7 +1451,6 @@ function settingsView(s) {
   if (has('S.Mask')) o.push(['Mask Type', code(MASK_N, s['S.Mask'])]);
   const sp = (mode !== 0 && has('S.A.StartPress')) ? s['S.A.StartPress'] : s['S.C.StartPress'];
   if (sp !== undefined) o.push(['Start Pressure', `${sp} cmH₂O`]);
-  if (has('S.Tube')) o.push(['Tube', `code ${s['S.Tube']}`]);
   if (has('S.RampTime') || has('S.RampEnable')) o.push(['Ramp', s['S.RampEnable'] === 0 ? 'Off' : `${s['S.RampTime']} min`]);
   return o;
 }
@@ -1533,6 +1533,7 @@ function buildReport(rows, p, appt, last, d) {
   let setNow = settingsView(lastSet);
   const mMask = setNow.find(x => x[0] === 'Mask Type'), mCode = lastSet ? lastSet['S.Mask'] : undefined;
   if (p.mask_type) { if (mMask) setNow = setNow.map(x => x[0] === 'Mask Type' ? ['Mask Type', p.mask_type] : x); else setNow.push(['Mask Type', p.mask_type]); }
+  if (p.tube_type) setNow.push(['Tube', p.tube_type]);
   const maskName = p.mask_type || (mMask ? mMask[1] : null);
   const maskNote = p.mask_type ? (mMask && mMask[1] !== p.mask_type ? `entered in the patient profile; the machine setting says ${mMask[1]}` : 'entered in the patient profile') : (mMask ? `from the machine setting${isN(mCode) ? ', code ' + mCode : ''}` : '');
   const model = p.device_model || 'AirSense 10';

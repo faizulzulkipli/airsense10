@@ -18,6 +18,7 @@ create table if not exists public.patients (
   device_model     text default 'AirSense 10',
   device_serial    text,
   mask_type        text,                       -- optional: Nasal / Full face / Nasal pillows (overrides the machine setting in reports)
+  tube_type        text,                       -- optional: SlimLine (15 mm) / Standard (19 mm) / 3 m (shown in reports)
   notes            text,
   created_at       timestamptz not null default now()
 );
@@ -66,6 +67,7 @@ create index if not exists sessions_patient_date_idx on public.sessions(patient_
 
 -- Upgrade path: safe to run on a database created with the first version of this schema
 alter table public.patients add column if not exists mask_type text;
+alter table public.patients add column if not exists tube_type text;
 alter table public.sessions add column if not exists oa_count   int;
 alter table public.sessions add column if not exists ca_count   int;
 alter table public.sessions add column if not exists h_count    int;

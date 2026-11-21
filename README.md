@@ -52,7 +52,8 @@ Nama peranti dalam laporan datang daripada medan **Device model** pada tab Patie
 Laporan kini menyatakan **Mask type** (cth. "Nasal") di halaman 1, pada baris tetapan terkini, dan pada halaman Machine settings, bersama sumbernya.
 - Mesin tidak mengesan mask sebenar. Ia hanya merekod pilihan **Settings > Accessories > Mask** (Full Face / Nasal / Pillows). Aplikasi menukar kod nombor `S.Mask` kepada nama.
 - **Cara paling pasti:** pada tab **Patients** > edit pesakit > **Mask type**, pilih Nasal / Full face / Nasal pillows. Pilihan ini diutamakan dalam laporan dan sumbernya ditulis "entered in the patient profile". Jika berbeza daripada tetapan mesin, laporan menyatakan kedua-duanya.
-- Jalankan semula `schema.sql` (menambah lajur `patients.mask_type`).
+- **Tube type:** pilih SlimLine (15 mm) / Standard (19 mm) / 3 m pada profil pesakit (semak di mesin: Settings > Accessories > Tube Type). Kod tiub daripada mesin tidak dipaparkan kerana maknanya belum disahkan. Jika tiada pilihan, baris Tube tidak dipaparkan.
+- Jalankan semula `schema.sql` (menambah lajur `patients.mask_type` dan `patients.tube_type`).
 - Pemetaan kod ke nama (0 = Nasal pillows, 1 = Full face, 2 = Nasal) berdasarkan ingatan format OSCAR, **belum disahkan dengan sumber rasmi**. Semak baris Mask pada laporan pertama dengan skrin mesin anda; jika salah, pilih Mask type di profil pesakit. Kod yang tidak dikenali (cth. jenis tiub) dipaparkan sebagai "code N", bukan diteka.
 
 ## Yang BELUM ada berbanding OSCAR
