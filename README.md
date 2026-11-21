@@ -48,7 +48,12 @@ Pilih julat tarikh, tarikh temu janji (pilihan), tekan **Generate**, kemudian **
 7. **Time-series malam terkini:** tekanan, leak (garisan 24 L/min dan minit di atasnya), kadar pernafasan (jalur rujukan 12–20), serta penafian.
 
 Nama peranti dalam laporan datang daripada medan **Device model** pada tab Patients (cth. "AirSense 10 AutoSet").
-Nota: kod tetapan yang aplikasi tidak pasti maknanya (cth. jenis tiub) dipaparkan sebagai "code N", bukan diteka. Semak nama Mask Type / EPR / Humidity pada laporan pertama dengan skrin mesin anda.
+### Jenis mask dan tetapan mesin
+Laporan kini menyatakan **Mask type** (cth. "Nasal") di halaman 1, pada baris tetapan terkini, dan pada halaman Machine settings, bersama sumbernya.
+- Mesin tidak mengesan mask sebenar. Ia hanya merekod pilihan **Settings > Accessories > Mask** (Full Face / Nasal / Pillows). Aplikasi menukar kod nombor `S.Mask` kepada nama.
+- **Cara paling pasti:** pada tab **Patients** > edit pesakit > **Mask type**, pilih Nasal / Full face / Nasal pillows. Pilihan ini diutamakan dalam laporan dan sumbernya ditulis "entered in the patient profile". Jika berbeza daripada tetapan mesin, laporan menyatakan kedua-duanya.
+- Jalankan semula `schema.sql` (menambah lajur `patients.mask_type`).
+- Pemetaan kod ke nama (0 = Nasal pillows, 1 = Full face, 2 = Nasal) berdasarkan ingatan format OSCAR, **belum disahkan dengan sumber rasmi**. Semak baris Mask pada laporan pertama dengan skrin mesin anda; jika salah, pilih Mask type di profil pesakit. Kod yang tidak dikenali (cth. jenis tiub) dipaparkan sebagai "code N", bukan diteka.
 
 ## Yang BELUM ada berbanding OSCAR
 - **Gelombang aliran (flow waveform, 25 Hz dari fail BRP):** tidak disimpan kerana satu malam ≈ 2 juta titik (beratus MB untuk setahun). Beritahu jika mahu pilihan "lihat gelombang aliran daripada kad SD tanpa simpan".

@@ -419,6 +419,7 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
         </div>
         <div class="row">
           <div><label>Device model</label><input id="patModel" placeholder="AirSense 10 AutoSet"></div>
+          <div><label>Mask type</label><select id="patMask"><option value="">Use the machine setting</option><option>Nasal</option><option>Full face</option><option>Nasal pillows</option></select></div>
           <div><label>Device serial</label><input id="patSerial"></div>
           <div style="flex:2"><label>Notes</label><input id="patNotes"></div>
         </div>
@@ -806,14 +807,14 @@ function renderPatientsTable() {
     <td class="num"><button class="ghost" data-edit="${p.id}">Edit</button> <button class="danger" data-del="${p.id}">Delete</button></td></tr>`).join('');
 }
 function resetPatForm() {
-  ['patId', 'patName', 'patRef', 'patDob', 'patModel', 'patSerial', 'patNotes'].forEach(i => $(i).value = '');
+  ['patId', 'patName', 'patRef', 'patDob', 'patModel', 'patMask', 'patSerial', 'patNotes'].forEach(i => $(i).value = '');
   $('patFormTitle').textContent = 'Add patient'; show($('btnPatCancel'), false);
 }
 $('btnPatCancel').onclick = resetPatForm;
 $('btnPatSave').onclick = async () => {
   const name = $('patName').value.trim();
   if (!name) return msg($('patMsg'), 'Name is required.', 'err');
-  const row = { full_name: name, ic_or_ref: $('patRef').value.trim() || null, date_of_birth: $('patDob').value || null, device_model: $('patModel').value.trim() || 'AirSense 10', device_serial: $('patSerial').value.trim() || null, notes: $('patNotes').value.trim() || null };
+  const row = { full_name: name, ic_or_ref: $('patRef').value.trim() || null, date_of_birth: $('patDob').value || null, device_model: $('patModel').value.trim() || 'AirSense 10', ...($('patMask').value ? { mask_type: $('patMask').value } : {}), device_serial: $('patSerial').value.trim() || null, notes: $('patNotes').value.trim() || null };
   const id = $('patId').value;
   const { data, error } = id ? await sb.from('patients').update(row).eq('id', id).select() : await sb.from('patients').insert(row).select();
   if (error) return msg($('patMsg'), error.message, 'err');
@@ -826,7 +827,7 @@ $('patTable').addEventListener('click', async e => {
   if (ed) {
     const p = patients.find(x => x.id === ed.dataset.edit);
     $('patId').value = p.id; $('patName').value = p.full_name; $('patRef').value = p.ic_or_ref || ''; $('patDob').value = p.date_of_birth || '';
-    $('patModel').value = p.device_model || ''; $('patSerial').value = p.device_serial || ''; $('patNotes').value = p.notes || '';
+    $('patModel').value = p.device_model || ''; $('patMask').value = p.mask_type || ''; $('patSerial').value = p.device_serial || ''; $('patNotes').value = p.notes || '';
     $('patFormTitle').textContent = 'Edit patient'; show($('btnPatCancel'), true); window.scrollTo(0, 0);
   }
   if (del) {
@@ -1432,14 +1433,15 @@ const DOM = {
 };
 
 // ---- device settings in plain words (codes we are not sure about are shown as codes, never guessed) ----
-const MODE_N = { 0: 'CPAP', 1: 'APAP (AutoSet)' }, EPR_T = { 0: 'Ramp Only', 1: 'Full Time' }, MASK_N = { 0: 'Nasal Pillow', 1: 'Full Face', 2: 'Nasal' };
+const MODE_N = { 0: 'CPAP', 1: 'APAP (AutoSet)' }, EPR_T = { 0: 'Ramp Only', 1: 'Full Time' }, MASK_N = { 0: 'Nasal pillows', 1: 'Full face', 2: 'Nasal' };
 function settingsView(s) {
   if (!s) return [];
   const o = [], has = k => s[k] !== undefined, code = (m, v) => m[v] || `code ${v}`, mode = s['Mode'];
   if (has('Mode')) o.push(['Therapy Mode', MODE_N[mode] || `Mode ${mode}`]);
   if (mode === 0 && has('S.C.Press')) o.push(['Pressure', `${s['S.C.Press']} cmH₂O`]);
   else if (has('S.A.MinPress') && has('S.A.MaxPress')) o.push(['Pressure', `${s['S.A.MinPress']} – ${s['S.A.MaxPress']} cmH₂O`]);
-  if (has('S.EPR.Level') || has('S.EPR.EPREnable')) o.push(['EPR', s['S.EPR.EPREnable'] === 0 ? 'Off' : `${has('S.EPR.EPRType') ? code(EPR_T, s['S.EPR.EPRType']) + ', ' : ''}Level ${s['S.EPR.Level']}`]);
+  else if (has('S.AFH.MinPress') && has('S.AFH.MaxPress')) o.push(['Pressure', `${s['S.AFH.MinPress']} – ${s['S.AFH.MaxPress']} cmH₂O`]);
+  if (has('S.EPR.Level') || has('S.EPR.EPREnable')) { const off = s['S.EPR.EPREnable'] === 0 || s['S.EPR.Level'] === 0; o.push(['EPR', off ? 'Off' : `${has('S.EPR.EPRType') ? code(EPR_T, s['S.EPR.EPRType']) + ', ' : ''}Level ${s['S.EPR.Level']}`]); }
   if (has('S.HumLevel') || has('S.HumEnable')) o.push(['Humidity', s['S.HumEnable'] === 0 ? 'Off' : `Level ${s['S.HumLevel']}${has('S.ClimateControl') ? (s['S.ClimateControl'] === 0 ? ' (Manual)' : ' (Auto)') : ''}`]);
   if (has('S.Mask')) o.push(['Mask Type', code(MASK_N, s['S.Mask'])]);
   const sp = (mode !== 0 && has('S.A.StartPress')) ? s['S.A.StartPress'] : s['S.C.StartPress'];
@@ -1523,7 +1525,12 @@ function buildReport(rows, p, appt, last, d) {
   const domKey = ev && ev.total ? ['OA', 'CA', 'H', 'UA'].reduce((a, b) => ev[b] > ev[a] ? b : a) : null;
   const domName = { OA: 'Obstructive', CA: 'Central', H: 'Hypopnea', UA: 'Unclassified' };
   const dm = medMin === null ? '–' : `${Math.floor(medMin / 60)}<small> h </small>${pad(Math.round(medMin % 60))}<small>m</small>`;
-  const setNow = settingsView((([...rows].reverse().find(r => r.settings)) || {}).settings);
+  const lastSet = (([...rows].reverse().find(r => r.settings)) || {}).settings || null;
+  let setNow = settingsView(lastSet);
+  const mMask = setNow.find(x => x[0] === 'Mask Type'), mCode = lastSet ? lastSet['S.Mask'] : undefined;
+  if (p.mask_type) { if (mMask) setNow = setNow.map(x => x[0] === 'Mask Type' ? ['Mask Type', p.mask_type] : x); else setNow.push(['Mask Type', p.mask_type]); }
+  const maskName = p.mask_type || (mMask ? mMask[1] : null);
+  const maskNote = p.mask_type ? (mMask && mMask[1] !== p.mask_type ? `entered in the patient profile; the machine setting says ${mMask[1]}` : 'entered in the patient profile') : (mMask ? `from the machine setting${isN(mCode) ? ', code ' + mCode : ''}` : '');
   const model = p.device_model || 'AirSense 10';
   const g = (cap, big, note) => `<div><div class="cap">${cap}</div><div class="gv">${big}</div><div class="gn">${note}</div></div>`;
   const pages = [];
@@ -1531,7 +1538,8 @@ function buildReport(rows, p, appt, last, d) {
   // ---- 1. therapy summary ----
   pages.push(`<section class="rpage">${repHead(sub)}
     <div class="rtop"><div><h1>Therapy summary <span class="rtag">SLEEP THERAPY · ${plural(n, 'night').toUpperCase()} ANALYZED</span></h1>
-      <div class="prep"><span class="cap">Prepared for</span> <span class="fld">${esc(p.full_name)}</span><span class="cap">Date of birth</span> <span class="fld">${esc(p.date_of_birth || '')}</span><span class="cap">Appointment</span> <span class="fld">${appt ? esc(fLong(appt)) : ''}</span></div></div>
+      <div class="prep"><span class="cap">Prepared for</span> <span class="fld">${esc(p.full_name)}</span><span class="cap">Date of birth</span> <span class="fld">${esc(p.date_of_birth || '')}</span><span class="cap">Appointment</span> <span class="fld">${appt ? esc(fLong(appt)) : ''}</span></div>
+      <div class="prep"><span class="cap">Device</span> <span>${esc(model)}</span><span class="cap" style="margin-left:14px">Mask type</span> <span><b>${esc(maskName || 'not recorded')}</b></span>${maskNote ? ` <span class="cap">(${esc(maskNote)})</span>` : ''}</div></div>
       <div class="rstreak"><div class="cap">Nights in a row</div>
         <p>${s4 ? `${plural(s4, 'night')} at 4 hours or more, through ${fShort(endDs)}` : 'No current run of nights at 4 hours or more'}</p>
         <p>${s5 ? `${plural(s5, 'night')} under 5, the mark the AASM associates with well-controlled therapy, through ${fShort(endDs)}` : 'No current run of nights with AHI under 5'}</p></div></div>
@@ -1551,7 +1559,7 @@ function buildReport(rows, p, appt, last, d) {
         ${g('Tidal volume', `${num(isN(tvAvg) ? tvAvg / 1000 : null, 2)} <small>L</small>`, 'Common general adult reference: about 0.5 L per breath for an average adult man, about 0.4 L for an average adult woman (not a personal target)')}
         ${g('Dominant event', domKey ? `<span class="dom">${domName[domKey]}</span>` : '–', domKey ? 'See event distribution' : 'No event data imported')}
       </div></div>
-    <div class="rset"><span class="cap">Newest settings</span><span>${esc([model, ...['Therapy Mode', 'Mask Type', 'Pressure', 'EPR', 'Humidity'].map(k => { const f = setNow.find(x => x[0] === k); return f ? (k === 'EPR' ? 'EPR ' + f[1] : k === 'Humidity' ? 'Humidifier ' + f[1] : f[1]) : null; }).filter(Boolean)].join('  ·  '))}</span></div>
+    <div class="rset"><span class="cap">Newest settings</span><span>${esc([model, ...['Therapy Mode', 'Mask Type', 'Pressure', 'EPR', 'Humidity'].map(k => { const f = setNow.find(x => x[0] === k); return f ? (k === 'EPR' ? 'EPR ' + f[1] : k === 'Humidity' ? 'Humidifier ' + f[1] : k === 'Mask Type' ? 'Mask ' + f[1] : f[1]) : null; }).filter(Boolean)].join('  ·  '))}</span></div>
     ${repFoot}</section>`);
 
   // ---- 2. findings ----
@@ -1633,6 +1641,7 @@ function buildReport(rows, p, appt, last, d) {
   pages.push(`<section class="rpage">${repHead(sub)}
     <div class="rsec"><h2>Machine settings</h2><span class="cap">Newest settings, and changes from the machine's record</span></div>
     ${setNow.length ? `<div class="setgrid">${setNow.map(([k, v]) => `<div><span class="muted">${esc(k)}</span> <b class="mono">${esc(v)}</b></div>`).join('')}</div>` : '<p class="muted">No device settings were found in the imported data.</p>'}
+    ${maskName ? `<p class="small"><b>Mask type: ${esc(maskName)}</b> (${esc(maskNote)}). The AirSense 10 does not detect which mask you wear. It uses the Mask setting chosen in the machine menu (Settings, Accessories, Mask: Full Face, Nasal or Pillows). Please check that this matches the mask you use.</p>` : ''}
     <p class="small muted">These settings were read from the most recent night's record, not the machine's current settings, so a change made since that night is not shown here.</p>
     <div class="cap" style="margin-top:14px">Settings changed during this period</div>
     ${chg.length ? chg.map(c => `<p style="margin:6px 0">${esc(c)}</p>`).join('') : '<p class="muted">No changes recorded during this period.</p>'}
