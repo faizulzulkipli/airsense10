@@ -217,7 +217,6 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
       <button id="btnLogin" style="flex:1">Sign in</button>
       <button id="btnSignup" class="ghost" style="flex:1">Create account</button>
     </p>
-    <p><button class="link" id="btnResetCfg">Change Supabase connection</button></p>
   </div>
 </div>
 
@@ -737,20 +736,29 @@ async function boot() {
   const { data } = await sb.auth.getSession();
   if (data.session) { user = data.session.user; await startApp(); } else showAuth();
 }
-function showAuth() { show($('setup'), false); show($('app'), false); show($('auth'), true); }
+function showAuth() {
+  show($('setup'), false); show($('app'), false); show($('auth'), true);
+  // Message left by the e-mail confirmation link (Supabase puts errors in the URL hash or query)
+  const q = new URLSearchParams((location.hash || '').replace(/^#/, '') + '&' + (location.search || '').replace(/^\?/, ''));
+  const code = q.get('error_code'), desc = q.get('error_description');
+  if (code || desc) {
+    const m = code === 'otp_expired' ? 'The confirmation link has expired or was already used (some mail apps open the link before you do). Try signing in with your email and password. If it still fails, create the account again to get a new link.' : (desc || 'The confirmation link could not be used.').replace(/\+/g, ' ');
+    msg($('authMsg'), m, 'err');
+    history.replaceState(null, '', location.pathname);
+  }
+}
 
 $('cfgSave').onclick = () => {
   const u = $('cfgUrl').value.trim(), k = $('cfgKey').value.trim();
   if (!/^https:\/\/.+\.supabase\.(co|in)/.test(u) || k.length < 20) return msg($('setupMsg'), 'Enter the full project URL and the anon key.', 'err');
   store.set('cpap_url', u); store.set('cpap_key', k); location.reload();
 };
-$('btnResetCfg').onclick = () => { store.del('cpap_url'); store.del('cpap_key'); location.reload(); };
 
 async function doAuth(signup) {
   const email = $('authEmail').value.trim(), password = $('authPass').value;
   if (!email || password.length < 6) return msg($('authMsg'), 'Enter an email and a password of at least 6 characters.', 'err');
   msg($('authMsg'), signup ? 'Creating account…' : 'Signing in…');
-  const { data, error } = signup ? await sb.auth.signUp({ email, password }) : await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = signup ? await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } }) : await sb.auth.signInWithPassword({ email, password });
   if (error) return msg($('authMsg'), error.message, 'err');
   if (!data.session) return msg($('authMsg'), 'Account created. Check your email to confirm it, then sign in.', 'ok');
   user = data.user; msg($('authMsg'), ''); await startApp();

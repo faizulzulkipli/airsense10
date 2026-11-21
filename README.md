@@ -83,6 +83,12 @@ public/config.js   diganti semasa build
 3. Isi Environment Variables: `SUPABASE_URL` dan `SUPABASE_ANON_KEY`.
 4. *Deploy*, kemudian letak URL Render di Supabase → Authentication → URL Configuration → Site URL.
 
+### Jika pautan pengesahan emel gagal
+1. Supabase > Authentication > URL Configuration: isi **Site URL** dengan URL Render anda (cth. `https://nama-app.onrender.com`) dan tambah URL yang sama di **Redirect URLs**. Jika Site URL masih `http://localhost:3000`, pautan dalam emel akan gagal.
+2. Pautan hanya sah sekali dan luput dalam masa singkat. Sesetengah aplikasi emel membukanya dahulu dan menghabiskan pautan itu ("otp_expired"). Cuba log masuk dengan emel dan kata laluan; akaun mungkin sudah disahkan.
+3. Untuk ujian pantas, matikan **Confirm email** di Authentication > Providers > Email.
+Aplikasi kini menghantar alamat laman semasa sebagai `emailRedirectTo` dan memaparkan mesej jelas jika pautan luput.
+
 ## Langkah 3: Guna
 1. Buat akaun, tambah **Patient**.
 2. **Import SD card** → pilih folder kad SD → *Read files* → semak pratonton (termasuk anggaran KB satu malam) → *Save to Supabase*.
