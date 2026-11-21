@@ -109,11 +109,16 @@ button.cc{cursor:pointer}
 .tsblk{margin-top:14px}
 .tsst{display:flex;gap:20px;margin-top:4px}
 .rfoot{border-top:1px solid var(--line);margin-top:22px;padding-top:8px;font:10.5px ui-monospace,monospace;letter-spacing:.06em;color:var(--muted)}
-@page{size:A4;margin:12mm}
+@page{size:A4;margin:9mm 11mm}
 @media print{
   .site-foot{display:none!important}
   .rpage{border:0;border-radius:0;padding:0;margin:0;break-after:page;page-break-after:always}
   .rpage:last-child{break-after:auto;page-break-after:auto}
+  .rfoot{display:none!important}
+  .rpage{font-size:12.5px}
+  .rpage .glance{grid-template-columns:repeat(4,1fr)}
+  .rpage .glance .gv{font-size:22px}
+  .rpage .rbox,.rpage .finding{margin-top:8px}
   .rtbl tr,.finding,.rbox,.tsblk{break-inside:avoid}
 }
 
@@ -399,7 +404,6 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
         <div class="row">
           <div><label>From</label><input type="date" id="repFrom"></div>
           <div><label>To</label><input type="date" id="repTo"></div>
-          <div><label>Appointment (optional)</label><input type="date" id="repAppt"></div>
           <div style="flex:0 0 auto"><button id="btnReport">Generate</button></div>
           <div style="flex:0 0 auto"><button class="ghost" id="btnPrint">Print / Save as PDF</button></div>
         </div>
@@ -1538,7 +1542,7 @@ function buildReport(rows, p, appt, last, d) {
   // ---- 1. therapy summary ----
   pages.push(`<section class="rpage">${repHead(sub)}
     <div class="rtop"><div><h1>Therapy summary <span class="rtag">SLEEP THERAPY · ${plural(n, 'night').toUpperCase()} ANALYZED</span></h1>
-      <div class="prep"><span class="cap">Prepared for</span> <span class="fld">${esc(p.full_name)}</span><span class="cap">Date of birth</span> <span class="fld">${esc(p.date_of_birth || '')}</span><span class="cap">Appointment</span> <span class="fld">${appt ? esc(fLong(appt)) : ''}</span></div>
+      <div class="prep"><span class="cap">Prepared for</span> <span class="fld">${esc(p.full_name)}</span><span class="cap">Date of birth</span> <span class="fld">${esc(p.date_of_birth || '')}</span></div>
       <div class="prep"><span class="cap">Device</span> <span>${esc(model)}</span><span class="cap" style="margin-left:14px">Mask type</span> <span><b>${esc(maskName || 'not recorded')}</b></span>${maskNote ? ` <span class="cap">(${esc(maskNote)})</span>` : ''}</div></div>
       <div class="rstreak"><div class="cap">Nights in a row</div>
         <p>${s4 ? `${plural(s4, 'night')} at 4 hours or more, through ${fShort(endDs)}` : 'No current run of nights at 4 hours or more'}</p>
@@ -1581,7 +1585,7 @@ function buildReport(rows, p, appt, last, d) {
     <div class="cap" style="margin-top:14px">Nights that stood out</div>
     <p class="small muted">A night is listed when it had an AHI of 5 or more (outside the under-5 mark the AASM associates with well-controlled therapy) or under 4 hours of use (the Medicare 4-hour line).</p>
     ${stood.length ? `<table class="rtbl"><tr><th>Night</th><th>Crossed</th><th>Therapy</th></tr>${stood.slice(0, 14).map(r => `<tr><td><b>${fShort(r.session_date)}</b></td><td>${crossed(r)}</td><td><b>${isN(r.ahi) ? `AHI ${num(r.ahi, 1)} · ` : ''}${hm(r.usage_minutes)}</b></td></tr>`).join('')}</table>${stood.length > 14 ? `<p class="small muted">and ${stood.length - 14} more earlier nights.</p>` : ''}` : '<p>No night crossed these lines in this period.</p>'}
-    ${qs.length ? `<div class="cap" style="margin-top:16px">Questions for your appointment</div><ol class="qs">${qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
+    ${qs.length ? `<div class="cap" style="margin-top:16px">Questions for your doctor</div><ol class="qs">${qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>` : ''}
     ${repFoot}</section>`);
 
   // ---- 3. events, trends, latest night ----
@@ -1691,7 +1695,7 @@ async function generateReport() {
   out.innerHTML = '<div class="card muted">Building report…</div>';
   const last = [...rows].reverse().find(r => r.usage_minutes > 0) || rows[rows.length - 1];
   let d; try { d = await loadDay(last); } catch (e) { d = { series: null, events: [] }; }
-  out.innerHTML = buildReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }, $('repAppt').value, last, d);
+  out.innerHTML = buildReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }, '', last, d);
 }
 $('btnReport').onclick = generateReport;
 $('btnPrint').onclick = async () => {

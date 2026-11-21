@@ -38,9 +38,9 @@ Pilihan **OSCAR style / SleepHQ style** diingat oleh browser. Data yang sama, ca
 SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinspirasi oleh susun atur dan jenis ringkasan yang serupa, bukan salinan; skor dan pemerhatian dikira oleh aplikasi ini. Pemerhatian bukan nasihat perubatan.
 
 ## Tab Report (laporan klinik, boleh cetak / simpan PDF)
-Pilih julat tarikh, tarikh temu janji (pilihan), tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas:
-1. **Therapy summary:** nama / tarikh lahir / temu janji, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
-2. **Findings:** item WATCH / NOTE (lonjakan leak, kadar pernafasan di luar 12–20, AHI ≥ 5, di bawah 4 jam, apnea pusat dominan, sebaran tekanan, leak biasa di bawah 24), "What's going well", "Nights that stood out" dan **Questions for your appointment** yang dijana daripada item WATCH.
+Pilih julat tarikh, tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas. Dalam PDF, footer setiap halaman dibuang dan halaman 1 muat sepenuhnya (termasuk tetapan terkini):
+1. **Therapy summary:** nama / tarikh lahir, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
+2. **Findings:** item WATCH / NOTE (lonjakan leak, kadar pernafasan di luar 12–20, AHI ≥ 5, di bawah 4 jam, apnea pusat dominan, sebaran tekanan, leak biasa di bawah 24), "What's going well", "Nights that stood out" dan **Questions for your doctor** yang dijana daripada item WATCH.
 3. **Period finding + Event distribution + Period trends** (dengan sparkline dan arah) dan **Most recent night** (jadual peristiwa, masa dalam apnea, leak/tekanan/pernafasan/isi padu/snore/flow limitation: purata, P95, maks).
 4. **Nightly log:** setiap malam dengan bar skala AHI 0–5, jam, leak, P95, tekanan, peristiwa; median tempoh.
 5. **Machine settings:** tetapan terkini dan **perubahan tetapan sepanjang tempoh**.
