@@ -108,6 +108,7 @@ button.cc{cursor:pointer}
 .tl{display:flex;justify-content:space-between;font:10.5px ui-monospace,monospace;color:var(--muted);margin-bottom:4px}
 .tsblk{margin-top:14px}
 .tsst{display:flex;gap:20px;margin-top:4px}
+.dayreport{display:none}
 .rfoot{border-top:1px solid var(--line);margin-top:22px;padding-top:8px;font:10.5px ui-monospace,monospace;letter-spacing:.06em;color:var(--muted)}
 @page{size:A4;margin:9mm 11mm}
 @media print{
@@ -115,8 +116,11 @@ button.cc{cursor:pointer}
   .rpage{border:0;border-radius:0;padding:0;margin:0;break-after:page;page-break-after:always}
   .rpage:last-child{break-after:auto;page-break-after:auto}
   .rfoot{display:none!important}
+  body.pdaily #dayBody{display:none!important}
+  body.pdaily #dayReport{display:block}
   .rpage{font-size:12.5px}
   .rpage .glance{grid-template-columns:repeat(4,1fr)}
+  .rpage .two{grid-template-columns:1fr 1fr}
   .rpage .glance .gv{font-size:22px}
   .rpage .rbox,.rpage .finding{margin-top:8px}
   .rtbl tr,.finding,.rbox,.tsblk{break-inside:avoid}
@@ -349,9 +353,11 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
           <input type="date" id="dayDate">
           <button class="ghost" id="dayNext" aria-label="Next night">&rarr;</button>
           <span class="muted" id="dayNote"></span>
+          <button class="ghost" id="dayPdf" style="margin-left:auto">Daily report (PDF)</button>
         </div>
       </div>
       <div id="dayBody"></div>
+      <div id="dayReport" class="dayreport"></div>
     </section>
 
     <!-- Statistics -->
@@ -1528,6 +1534,27 @@ function cal90(endDs) {
 const repHead = (sub) => `<div class="rhead"><span class="mfz">MFZ</span><b>CPAP Data Manager</b><span class="rsub">${sub}</span></div>`;
 const repFoot = '<div class="rfoot">MFZ · NOT MEDICAL ADVICE</div>';
 
+function buildTS(last, d) {
+  const m3 = (r, k, f, dd = 1, mul = 1) => { const v = sv(r, k, f); return isN(v) ? num(v * mul, dd) : '–'; };
+  const sr = d.series;
+  let ts = '';
+  if (!sr || !sr.t || !sr.t.length) ts = '<p class="muted">No per-minute curves are stored for this night. Import the whole SD card (including DATALOG) to see them.</p>';
+  else {
+    const x0 = sr.t[0], x1 = sr.t[sr.t.length - 1] + 1, step = (() => { const df = []; for (let i = 1; i < sr.t.length; i++) if (sr.t[i] - sr.t[i - 1] <= 5) df.push(sr.t[i] - sr.t[i - 1]); return medianOf(df) || 1; })();
+    const ticks = Array.from({ length: 8 }, (_, i) => `<span>${clock(x0 + (x1 - x0) * i / 7)}</span>`).join('');
+    const mx = k => { const a = (sr[k] || []).filter(isN); return a.length ? Math.max(...a) : 0; }, mn = k => { const a = (sr[k] || []).filter(isN); return a.length ? Math.min(...a) : 0; };
+    const aboveMin = sr.lk ? sr.lk.filter(x => isN(x) && x > LEAK_LINE).length * step : null;
+    const blk = (title, unit, right, chart, text, statsHtml) => `<div class="tsblk"><div class="rsec"><h3 style="margin:0">${title} <span class="cap">${unit}</span></h3><span class="cap">${right}</span></div>${chart}<p class="small muted">${text}</p><div class="tsst">${statsHtml}</div></div>`;
+    const st3 = (a, b, c) => [['AVG', a], ['P95', b], ['MAX', c]].filter(x => x[1] !== null && x[1] !== '–').map(([l, v]) => `<span><span class="cap">${l}</span> <b class="mono">${v}</b></span>`).join('');
+    const pMax = Math.max(4, Math.ceil((mx('mp') + 0.5) / 2) * 2), lMax = Math.max(40, Math.ceil(mx('lk') / 20) * 20), rLo = Math.max(0, Math.floor(mn('rr') / 4) * 4), rHi = Math.max(24, Math.ceil(mx('rr') / 4) * 4);
+    ts = `<div class="tl">${ticks}</div>` +
+      (sr.mp ? blk('Pressure', 'cmH₂O', `RANGE 0 – ${pMax} CMH₂O`, svgChart({ t: sr.t, v: sr.mp, x0, x1, y0: 0, y1: pMax, label: 'Pressure over the night' }), (last.settings && last.settings['S.RampEnable'] !== 0 && last.settings['S.RampTime'] > 0) ? 'A rise at the session start is the ramp, the machine reaching therapy pressure.' : 'Mask pressure over the night, averaged per minute.', st3(m3(last, 'mp', 'avg') + ' cmH₂O', m3(last, 'mp', 'p95'), m3(last, 'mp', 'max'))) : '') +
+      (sr.lk ? blk('Leak rate', 'L/min', `<span style="margin-right:12px">---- RESMED SEAL LINE 24 L/MIN</span>RANGE 0 – ${lMax} L/MIN`, svgChart({ t: sr.t, v: sr.lk, x0, x1, y0: 0, y1: lMax, ref: LEAK_LINE, label: 'Leak over the night' }), `With the mask on, leak ran above the 24 L/min line for about ${aboveMin} min of the ${hm(last.usage_minutes)} recorded. That is the mask-seal line in ResMed's guide. A spike is a moment when more air escaped than usual. Sustained leak above the line can keep the machine from holding its set pressure.`, [['MED', m3(last, 'lk', 'p50') + ' L/min'], ['P95', m3(last, 'lk', 'p95')], ['MAX', m3(last, 'lk', 'max')]].map(([l, v]) => `<span><span class="cap">${l}</span> <b class="mono">${v}</b></span>`).join('')) : '') +
+      (sr.rr ? blk('Respiratory rate', 'bpm', `<span style="margin-right:12px">▭ 12–20 REFERENCE</span>RANGE ${rLo} – ${rHi} BPM`, svgChart({ t: sr.t, v: sr.rr, x0, x1, y0: rLo, y1: rHi, band: [12, 20], label: 'Respiratory rate over the night' }), 'A common general adult reference is 12 to 20 breaths a minute, not a personal target.', st3(m3(last, 'rr', 'avg') + ' bpm', m3(last, 'rr', 'p95'), m3(last, 'rr', 'max'))) : '');
+  }
+  return ts;
+}
+
 function buildReport(rows, p, appt, last, d) {
   const used = rows.filter(r => r.usage_minutes > 0), n = rows.length, s = summarize(rows), ev = evTotals(rows);
   const range = `${fLong(rows[0].session_date).toUpperCase()} — ${fLong(rows[rows.length - 1].session_date).toUpperCase()}`, sub = `THERAPY REPORT · ${range}`;
@@ -1670,22 +1697,7 @@ function buildReport(rows, p, appt, last, d) {
     ${repFoot}</section>`);
 
   // ---- 7. single-night time series ----
-  const sr = d.series;
-  let ts = '';
-  if (!sr || !sr.t || !sr.t.length) ts = '<p class="muted">No per-minute curves are stored for this night. Import the whole SD card (including DATALOG) to see them.</p>';
-  else {
-    const x0 = sr.t[0], x1 = sr.t[sr.t.length - 1] + 1, step = (() => { const df = []; for (let i = 1; i < sr.t.length; i++) if (sr.t[i] - sr.t[i - 1] <= 5) df.push(sr.t[i] - sr.t[i - 1]); return medianOf(df) || 1; })();
-    const ticks = Array.from({ length: 8 }, (_, i) => `<span>${clock(x0 + (x1 - x0) * i / 7)}</span>`).join('');
-    const mx = k => { const a = (sr[k] || []).filter(isN); return a.length ? Math.max(...a) : 0; }, mn = k => { const a = (sr[k] || []).filter(isN); return a.length ? Math.min(...a) : 0; };
-    const aboveMin = sr.lk ? sr.lk.filter(x => isN(x) && x > LEAK_LINE).length * step : null;
-    const blk = (title, unit, right, chart, text, statsHtml) => `<div class="tsblk"><div class="rsec"><h3 style="margin:0">${title} <span class="cap">${unit}</span></h3><span class="cap">${right}</span></div>${chart}<p class="small muted">${text}</p><div class="tsst">${statsHtml}</div></div>`;
-    const st3 = (a, b, c) => [['AVG', a], ['P95', b], ['MAX', c]].filter(x => x[1] !== null && x[1] !== '–').map(([l, v]) => `<span><span class="cap">${l}</span> <b class="mono">${v}</b></span>`).join('');
-    const pMax = Math.max(4, Math.ceil((mx('mp') + 0.5) / 2) * 2), lMax = Math.max(40, Math.ceil(mx('lk') / 20) * 20), rLo = Math.max(0, Math.floor(mn('rr') / 4) * 4), rHi = Math.max(24, Math.ceil(mx('rr') / 4) * 4);
-    ts = `<div class="tl">${ticks}</div>` +
-      (sr.mp ? blk('Pressure', 'cmH₂O', `RANGE 0 – ${pMax} CMH₂O`, svgChart({ t: sr.t, v: sr.mp, x0, x1, y0: 0, y1: pMax, label: 'Pressure over the night' }), (last.settings && last.settings['S.RampEnable'] !== 0 && last.settings['S.RampTime'] > 0) ? 'A rise at the session start is the ramp, the machine reaching therapy pressure.' : 'Mask pressure over the night, averaged per minute.', st3(m3(last, 'mp', 'avg') + ' cmH₂O', m3(last, 'mp', 'p95'), m3(last, 'mp', 'max'))) : '') +
-      (sr.lk ? blk('Leak rate', 'L/min', `<span style="margin-right:12px">---- RESMED SEAL LINE 24 L/MIN</span>RANGE 0 – ${lMax} L/MIN`, svgChart({ t: sr.t, v: sr.lk, x0, x1, y0: 0, y1: lMax, ref: LEAK_LINE, label: 'Leak over the night' }), `With the mask on, leak ran above the 24 L/min line for about ${aboveMin} min of the ${hm(last.usage_minutes)} recorded. That is the mask-seal line in ResMed's guide. A spike is a moment when more air escaped than usual. Sustained leak above the line can keep the machine from holding its set pressure.`, [['MED', m3(last, 'lk', 'p50') + ' L/min'], ['P95', m3(last, 'lk', 'p95')], ['MAX', m3(last, 'lk', 'max')]].map(([l, v]) => `<span><span class="cap">${l}</span> <b class="mono">${v}</b></span>`).join('')) : '') +
-      (sr.rr ? blk('Respiratory rate', 'bpm', `<span style="margin-right:12px">▭ 12–20 REFERENCE</span>RANGE ${rLo} – ${rHi} BPM`, svgChart({ t: sr.t, v: sr.rr, x0, x1, y0: rLo, y1: rHi, band: [12, 20], label: 'Respiratory rate over the night' }), 'A common general adult reference is 12 to 20 breaths a minute, not a personal target.', st3(m3(last, 'rr', 'avg') + ' bpm', m3(last, 'rr', 'p95'), m3(last, 'rr', 'max'))) : '');
-  }
+  const ts = buildTS(last, d);
   pages.push(`<section class="rpage">${repHead(sub)}
     <div class="rsec"><h2>Time-series · ${fLong(last.session_date)}</h2><span class="cap">Single-night detail</span></div>
     ${ts}
@@ -1712,6 +1724,76 @@ $('btnPrint').onclick = async () => {
   if (!$('reportCard')) return;
   const sec = $('tab-report'); sec.classList.add('printing');
   setTimeout(() => { window.print(); sec.classList.remove('printing'); }, 400);
+};
+
+// ---------- Daily report (one night, PDF via the browser's Save as PDF) ----------
+function buildDailyReport(r, p, d) {
+  const sub = `DAILY REPORT · ${fLong(r.session_date).toUpperCase()}`, model = p.device_model || 'AirSense 10';
+  const ev = isN(r.oa_count) ? { OA: r.oa_count, CA: r.ca_count, H: r.h_count, UA: r.ua_count, RERA: r.rera_count || 0 } : null, hrs = r.usage_minutes / 60;
+  const evTot = ev ? ev.OA + ev.CA + ev.H + ev.UA : null, ex = d.events || [];
+  const apSec = ex.filter(e => ['OA', 'CA', 'UA'].includes(eventKind(e.event_type))).reduce((a, e) => a + e.duration_sec, 0);
+  const m3 = (k, f, dd = 1, mul = 1) => { const v = sv(r, k, f); return isN(v) ? num(v * mul, dd) : '–'; };
+  const lk50 = pick(r, 'lk', 'p50', 'leak_50'), lk95 = pick(r, 'lk', 'p95', 'leak_95');
+  let set = settingsView(r.settings || null);
+  const mMask = set.find(x => x[0] === 'Mask Type');
+  if (p.mask_type) { if (mMask) set = set.map(x => x[0] === 'Mask Type' ? ['Mask Type', p.mask_type] : x); else set.push(['Mask Type', p.mask_type]); }
+  if (p.tube_type) set.push(['Tube', p.tube_type]);
+  const maskName = p.mask_type || (mMask ? mMask[1] : null);
+  const items = reportFindings([r], summarize([r]), r, null).filter(i => i.lvl === 'WATCH' && i.tag && i.tag !== 'THIS PERIOD');
+  const g = (cap, big, note) => `<div><div class="cap">${cap}</div><div class="gv">${big}</div><div class="gn">${note}</div></div>`;
+  const evNames = { OA: 'Obstructive', CA: 'Central', H: 'Hypopnea', UA: 'Unclassified', RERA: 'RERA' };
+  const pages = [];
+  pages.push(`<section class="rpage">${repHead(sub)}
+    <div class="rtop"><div><h1>Daily report <span class="rtag">${esc(fLong(r.session_date).toUpperCase())}</span></h1>
+      <div class="prep"><span class="cap">Prepared for</span> <span class="fld">${esc(p.full_name)}</span><span class="cap">Date of birth</span> <span class="fld">${esc(p.date_of_birth || '')}</span></div>
+      <div class="prep"><span class="cap">Device</span> <span>${esc(model)}</span><span class="cap" style="margin-left:14px">Mask type</span> <span><b>${esc(maskName || 'not recorded')}</b></span></div>
+      <div class="prep"><span class="cap">Session</span> <span>${t12(r.first_on)} — ${t12(r.last_off)}</span><span class="cap" style="margin-left:14px">Mask on/off</span> <span>${r.mask_sessions || 0} ${r.mask_sessions === 1 ? 'period' : 'periods'}</span></div></div></div>
+    <div class="rbox"><div class="rb-h"><span class="cap">Summary at a glance</span><span class="cap">ONE NIGHT</span></div>
+      <div class="glance">
+        ${g('AHI', `${num(r.ahi, 1)} <small>/hr</small>`, `${isN(r.ahi) ? (r.ahi < 5 ? 'Under 5' : 'At or above 5') + ' · the under-5 mark the AASM associates with well-controlled therapy' : 'Not recorded'}`)}
+        ${g('Usage', hm(r.usage_minutes), r.usage_minutes >= 240 ? '4 hours or more · Medicare threshold 4h' : 'Under the 4-hour Medicare threshold')}
+        ${g('Leak (typical / P95)', `${num(lk50, 1)} <small>/ ${num(lk95, 1)} L/min</small>`, `${isN(lk50) ? (lk50 < LEAK_LINE ? 'Typical leak under 24' : 'Typical leak at or above 24') + " · ResMed's mask-seal line for its own machines" : 'Not recorded'}`)}
+        ${g('Pressure (avg / P95)', `${m3('mp', 'avg')} <small>/ ${m3('mp', 'p95')}</small>`, 'cmH₂O')}
+        ${g('Resp. rate', `${m3('rr', 'avg')} <small>bpm</small>`, 'Average · general adult reference 12-20')}
+        ${g('Tidal volume', `${m3('tv', 'avg', 2, 0.001)} <small>L</small>`, 'Average per breath')}
+        ${g('Minute ventilation', `${m3('mv', 'avg')} <small>L/min</small>`, 'Average')}
+        ${g('Events', evTot === null ? '–' : evTot, evTot === null ? 'No event data imported' : `${num(evTot / (hrs || 1), 1)} per hour`)}
+      </div></div>
+    <div class="two" style="margin-top:14px">
+      <div><div class="rsec"><h3>Events</h3><span class="cap">${hm(r.usage_minutes).toUpperCase()} OF THERAPY</span></div>
+        ${ev ? `<table class="rtbl"><tr><th>Type</th><th class="num">Count</th><th class="num">Rate /hr</th></tr>${['OA', 'CA', 'H', 'UA', 'RERA'].map(k => `<tr><td>${evNames[k]}</td><td class="num">${ev[k]}</td><td class="num">${num(ev[k] / (hrs || 1), 1)}</td></tr>`).join('')}</table>
+        <p class="small muted">${secFmt(apSec)} in apneas (${num(apSec / ((r.usage_minutes * 60) || 1) * 100, 2)}% of usage). Hypopnea durations are not included. RERAs are not part of the AHI.</p>` : '<p class="muted">No event file was imported for this night.</p>'}</div>
+      <div><div class="rsec"><h3>Signals</h3><span class="cap">THIS NIGHT</span></div>
+        <table class="rtbl"><tr><th>Metric</th><th class="num">Avg</th><th class="num">P95</th><th class="num">Max</th></tr>
+        <tr><td>Leak <span class="cap">L/min</span></td><td class="num">${m3('lk', 'p50')} <span class="cap">(typical)</span></td><td class="num">${m3('lk', 'p95')}</td><td class="num">${m3('lk', 'max')}</td></tr>
+        <tr><td>Pressure <span class="cap">cmH₂O</span></td><td class="num">${m3('mp', 'avg')}</td><td class="num">${m3('mp', 'p95')}</td><td class="num">${m3('mp', 'max')}</td></tr>
+        <tr><td>Resp. rate <span class="cap">bpm</span></td><td class="num">${m3('rr', 'avg')}</td><td class="num">${m3('rr', 'p95')}</td><td class="num">${m3('rr', 'max')}</td></tr>
+        <tr><td>Tidal vol <span class="cap">L</span></td><td class="num">${m3('tv', 'avg', 2, 0.001)}</td><td class="num">${m3('tv', 'p95', 2, 0.001)}</td><td class="num">${m3('tv', 'max', 2, 0.001)}</td></tr>
+        <tr><td>Minute vent <span class="cap">L/min</span></td><td class="num">${m3('mv', 'avg')}</td><td class="num">${m3('mv', 'p95')}</td><td class="num">${m3('mv', 'max')}</td></tr>
+        <tr><td>Flow lim</td><td class="num">${m3('fl', 'avg', 2)}</td><td class="num">${m3('fl', 'p95', 2)}</td><td class="num">${m3('fl', 'max', 2)}</td></tr>
+        <tr><td>Snore idx</td><td class="num">${m3('sn', 'avg', 2)}</td><td class="num">${m3('sn', 'p95', 2)}</td><td class="num">${m3('sn', 'max', 2)}</td></tr></table></div></div>
+    <div class="cap" style="margin-top:14px">Worth raising with your doctor</div>${!items.length ? '<p class="small muted">Nothing flagged for this night.</p>' : items.map(i => `<div class="finding"><span class="flag ${i.lvl === 'WATCH' ? 'watch' : ''}">${i.lvl}</span><div><b>${esc(i.title)}</b><div>${esc(i.body)}</div></div></div>`).join('')}
+    <div class="rset"><span class="cap">Settings that night</span><span>${set.length ? set.map(([k, v]) => esc(k + ' ' + v)).join('  ·  ') : 'not recorded'}</span></div>
+    <p class="small muted">Leak shows the machine's own headline leak figure (the median); other Avg values are means. One night can look very different from the rest. Not medical advice.</p>
+    ${repFoot}</section>`);
+  pages.push(`<section class="rpage">${repHead(sub)}
+    <div class="rsec"><h2>Time-series · ${fLong(r.session_date)}</h2><span class="cap">Single-night detail</span></div>
+    ${buildTS(r, d)}
+    <p class="small" style="margin-top:16px;border-top:1px solid var(--ink);padding-top:10px;max-width:640px"><b>About this report.</b> MFZ CPAP Data Manager generates this summary from SD-card data exported by your CPAP device. It is a data display tool, not a diagnosis, and does not replace advice from your doctor.</p>
+    <p class="small mono">Generated ${fLong(new Date().toISOString().slice(0, 10))}</p>
+    ${repFoot}</section>`);
+  return `<div class="rep">${pages.join('')}</div>`;
+}
+$('dayPdf').onclick = async () => {
+  const r = sessions.find(x => x.session_date === dayDate); if (!r) return;
+  const btn = $('dayPdf'); btn.disabled = true;
+  try {
+    const d = await loadDay(r), p = patients.find(x => x.id === patientId) || { full_name: '' };
+    $('dayReport').innerHTML = buildDailyReport(r, p, d);
+    const old = document.title; document.title = `CPAP daily report - ${p.full_name || 'patient'} - ${r.session_date}`;
+    const sec = $('tab-daily'); sec.classList.add('printing'); document.body.classList.add('pdaily');
+    setTimeout(() => { window.print(); sec.classList.remove('printing'); document.body.classList.remove('pdaily'); document.title = old; btn.disabled = false; }, 400);
+  } catch (e) { btn.disabled = false; msg($('dayNote'), e.message, 'err'); }
 };
 
 boot();

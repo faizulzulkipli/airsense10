@@ -37,6 +37,9 @@ Pilihan **OSCAR style / SleepHQ style** diingat oleh browser. Data yang sama, ca
 
 SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinspirasi oleh susun atur dan jenis ringkasan yang serupa, bukan salinan; skor dan pemerhatian dikira oleh aplikasi ini. Pemerhatian bukan nasihat perubatan.
 
+## Laporan harian (PDF satu malam)
+Pada tab **Daily**, pilih malam, tekan **Daily report (PDF)**. Dialog cetak dibuka; pilih **Save as PDF** (destinasi) dan simpan. Nama fail dicadangkan sebagai "CPAP daily report - nama - tarikh". Laporan 2 halaman: ringkasan (AHI, usage, leak, tekanan, pernafasan, isi padu, peristiwa), jadual peristiwa dan isyarat, dapatan untuk doktor, tetapan malam itu (termasuk jenis mask dan tiub), kemudian graf tekanan, leak dan kadar pernafasan sepanjang malam.
+
 ## Tab Report (laporan klinik, boleh cetak / simpan PDF)
 Pilih julat tarikh, tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas. Dalam PDF, footer setiap halaman dibuang dan halaman 1 muat sepenuhnya (termasuk tetapan terkini):
 1. **Therapy summary:** nama / tarikh lahir, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
