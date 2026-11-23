@@ -1,4 +1,4 @@
-# CPAP Data Manager — Render + Supabase (paparan gaya OSCAR)
+# CPAP Data Manager — Render + Supabase (paparan gaya SleepHQ)
 
 Aplikasi web (static site) untuk membaca data kad SD ResMed AirSense 10.
 
@@ -13,37 +13,15 @@ Aplikasi web (static site) untuk membaca data kad SD ResMed AirSense 10.
 
 Saiz: kira-kira 20–30 KB satu malam, jadi 10 tahun ≈ 70–110 MB (had pelan percuma Supabase ialah 500 MB). Untuk lebih kecil, ubah `SERIES_STEP` di bahagian atas skrip `public/index.html` (2 = separuh saiz, 5 = satu perlima).
 
-## Tema dan graf Daily
-Tema kini kebiruan (cerah dan gelap mengikut tetapan peranti). Pada tab **Daily**, gerakkan tetikus pada mana-mana graf: satu garisan menegak muncul serentak pada semua graf (peristiwa, tekanan, leak, kadar pernafasan, isi padu, ventilasi, snore, flow limitation), dan di tajuk setiap graf nilai pada masa itu dipaparkan (cth. "15:04 · Mask 8.6 · EPR 7.0 · Target 7.0"). Apabila tetikus keluar, baris purata / P95 / maks malam itu dipaparkan semula. Pada skrin sentuh, seret jari pada graf.
+## Paparan (gaya SleepHQ)
+Tab: **Dashboard, Daily, Compare, Import SD card, Report, Patients**. Tema kebiruan (cerah dan gelap mengikut tetapan peranti).
 
-## Skrin
-- **Overview:** trend guna, event/jam mengikut jenis (OA/CA/H/UA/RERA), tekanan, leak, kadar pernafasan, isi padu tidal, ventilasi minit, snore dan flow limitation.
-- **Daily:** seperti paparan harian OSCAR. Carta bersusun dengan paksi masa yang sama (peristiwa, tekanan + EPR + sasaran, leak, kadar pernafasan, isi padu tidal, ventilasi minit, snore, flow limitation), zum 4 jam / 2 jam / 1 jam / 30 minit dengan penggelongsor, pecahan peristiwa, tetapan mesin, statistik isyarat malam itu, dan senarai peristiwa. Butang ← → untuk malam sebelum/seterusnya.
-- **Statistics:** jadual Last night / 7 / 30 / 90 / 1 tahun / Semua (usaha, AHI, OA/CA/H/UA/RERA, RDI, tekanan, leak, pernafasan), serta jadual setiap malam dan eksport CSV.
-- **Report:** laporan boleh cetak / simpan PDF untuk doktor.
-
-## Tiga gaya paparan (pilih di bahagian atas kanan)
-Pilihan **OSCAR style / SleepHQ style / CPAP Clarity style** diingat oleh browser. Data yang sama, cara analisis berbeza.
-
-**CPAP Clarity style:** tab **Summary** memaparkan laporan terapi gaya CPAP Clarity terus di skrin (Therapy summary, Worth raising with your doctor, kepatuhan 4 jam / 70%, kad ringkasan, dapatan, taburan peristiwa, trend, log malam, kalendar 90 malam, tetapan mesin). Pilih tempoh 7 / 14 / 30 / 90 malam atau semua. Butang *Open as PDF report* membuka tab Report untuk dicetak. Tab Daily, Import, Report dan Patients kekal.
-
-| | OSCAR style | SleepHQ style |
-|---|---|---|
-| Tab | Overview, Daily, Statistics | Dashboard, Daily, Compare |
-| Fokus | Butiran teknikal dan semua isyarat | Ringkasan mudah, skor, pemerhatian |
-| Daily | Semua carta isyarat | Skor malam, pemerhatian, carta peristiwa + tekanan + leak. Butang "Show all signals" untuk selebihnya |
-
-**SleepHQ style** merangkumi:
-- **Therapy score (0–100):** penggunaan 40 mata, AHI 30, leak 20, berapa kali topeng ditanggalkan 10. Ini anggaran kami sendiri, **bukan** skor SleepHQ atau myAir.
-- **Insights:** pemerhatian automatik dalam ayat biasa (patuhan 4 jam/70% malam, AHI dan trend, jenis peristiwa dominan, apnea pusat, leak tinggi, tekanan mencecah had maksimum, malam terbaik/terburuk).
-- **Kalendar berwarna** mengikut guna / AHI / leak. Klik hari untuk buka malam itu.
-- **Perbandingan dengan tempoh sebelumnya** (anak panah naik/turun hijau atau merah) pada kad Dashboard.
-- **Compare:** banding dua julat tarikh bersebelahan (skor, guna, AHI, setiap jenis peristiwa, leak, tekanan, pernafasan) dengan perubahan dan peratus, serta carta peristiwa A lawan B.
+- **Dashboard:** skor terapi (0-100: penggunaan 40, AHI 30, leak 20, topeng ditanggalkan 10; anggaran kami sendiri, **bukan** skor SleepHQ atau myAir), pemerhatian automatik dalam ayat biasa (patuhan 4 jam / 70% malam, AHI dan trend, jenis peristiwa dominan, apnea pusat, leak tinggi, tekanan mencecah had maksimum, malam terbaik / terburuk), kalendar berwarna mengikut guna / AHI / leak (klik hari untuk buka malam itu), dan perbandingan dengan tempoh sebelumnya.
+- **Daily:** skor malam, pemerhatian, carta peristiwa + tekanan + leak. Butang *Show all signals* untuk kadar pernafasan, isi padu tidal, ventilasi minit, snore dan flow limitation. Zum 4 jam / 2 jam / 1 jam / 30 minit dengan penggelongsor, butang ← → untuk malam sebelum / seterusnya, jadual peristiwa, tetapan mesin dan statistik isyarat. Butang **Daily report (PDF)** menjana laporan 2 halaman untuk malam itu.
+- **Garisan kursor (crosshair):** gerakkan tetikus pada mana-mana graf Daily dan satu garisan menegak muncul serentak pada semua graf. Di tajuk setiap graf, nilai pada masa itu dipaparkan (cth. "15:04 · Mask 8.6 · EPR 7.0 · Target 7.0"). Apabila tetikus keluar, baris purata / P95 / maks dipaparkan semula. Pada skrin sentuh, seret jari.
+- **Compare:** banding dua julat tarikh bersebelahan dengan perubahan dan peratus, serta carta peristiwa A lawan B.
 
 SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinspirasi oleh susun atur dan jenis ringkasan yang serupa, bukan salinan; skor dan pemerhatian dikira oleh aplikasi ini. Pemerhatian bukan nasihat perubatan.
-
-## Laporan harian (PDF satu malam)
-Pada tab **Daily**, pilih malam, tekan **Daily report (PDF)**. Dialog cetak dibuka; pilih **Save as PDF** (destinasi) dan simpan. Nama fail dicadangkan sebagai "CPAP daily report - nama - tarikh". Laporan 2 halaman: ringkasan (AHI, usage, leak, tekanan, pernafasan, isi padu, peristiwa), jadual peristiwa dan isyarat, dapatan untuk doktor, tetapan malam itu (termasuk jenis mask dan tiub), kemudian graf tekanan, leak dan kadar pernafasan sepanjang malam.
 
 ## Tab Report (laporan klinik, boleh cetak / simpan PDF)
 Pilih julat tarikh, tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas. Dalam PDF, footer setiap halaman dibuang dan halaman 1 muat sepenuhnya (termasuk tetapan terkini):

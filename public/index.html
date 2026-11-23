@@ -231,40 +231,23 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
   <header class="top">
     <h1>CPAP Data Manager <span class="muted" style="font-weight:400">· AirSense 10</span></h1>
     <div class="right">
-      <select id="viewMode" aria-label="View style" title="View style" style="min-width:150px">
-        <option value="oscar">OSCAR style</option>
-        <option value="sleephq">SleepHQ style</option>
-        <option value="clarity">CPAP Clarity style</option>
-      </select>
       <select id="patientSel" aria-label="Patient"></select>
       <span id="userEmail" class="muted"></span>
       <button class="ghost" id="btnLogout">Sign out</button>
     </div>
   </header>
   <nav id="tabs">
-    <button data-tab="summary" data-modes="clarity">Summary</button>
-    <button data-tab="overview" data-modes="oscar" class="active">Overview</button>
-    <button data-tab="dashboard" data-modes="sleephq">Dashboard</button>
+    <button data-tab="dashboard" class="active">Dashboard</button>
     <button data-tab="daily">Daily</button>
-    <button data-tab="stats" data-modes="oscar">Statistics</button>
-    <button data-tab="compare" data-modes="sleephq">Compare</button>
+    <button data-tab="compare">Compare</button>
     <button data-tab="import">Import SD card</button>
     <button data-tab="report">Report</button>
     <button data-tab="patients">Patients</button>
   </nav>
 
   <main>
-    <!-- Summary (CPAP Clarity style) -->
-    <section id="tab-summary" class="tab hidden">
-      <div class="card noprint"><div class="row">
-        <div style="max-width:220px"><label>Period</label><select id="sumRange"><option value="7">Last 7 nights</option><option value="14">Last 14 nights</option><option value="30" selected>Last 30 nights</option><option value="90">Last 90 nights</option><option value="0">All nights</option></select></div>
-        <div style="flex:0 0 auto"><button class="ghost" id="sumPdf">Open as PDF report</button></div>
-      </div></div>
-      <div id="sumOut"></div>
-    </section>
-
     <!-- Overview -->
-    <section id="tab-overview" class="tab">
+    <section id="tab-overview" class="tab hidden">
       <div class="card noprint">
         <div class="row">
           <div style="max-width:220px">
@@ -719,7 +702,7 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { ret
 
 let sb = null, user = null, patients = [], patientId = null, sessions = [], pending = null;
 let dayDate = null, dayCache = {}, dayExt = [0, 480], dayChartIds = [];
-let viewMode = ['sleephq', 'clarity'].includes(store.get('cpap_view')) ? store.get('cpap_view') : 'oscar', showAllSignals = false;
+const viewMode = 'sleephq'; let showAllSignals = false;
 const charts = {};
 
 const COLS = 'id,session_date,first_on,last_off,usage_minutes,mask_sessions,ahi,ai,hi,oai,cai,uai,leak_50,leak_95,leak_max,press_50,press_95,press_max,resp_rate_50,min_vent_50,oa_count,ca_count,h_count,ua_count,rera_count,csr_minutes,stats,settings';
@@ -793,7 +776,7 @@ async function startApp() {
   await loadPatients();
   const today = new Date(), back = new Date(Date.now() - 89 * DAY_MS);
   $('repTo').value = today.toISOString().slice(0, 10); $('repFrom').value = back.toISOString().slice(0, 10);
-  if (!patients.length) { applyMode(); switchTab('patients'); } else { await selectPatient(patientId); applyMode(); switchTab(viewMode === 'sleephq' ? 'dashboard' : viewMode === 'clarity' ? 'summary' : 'overview'); }
+  if (!patients.length) { applyMode(); switchTab('patients'); } else { await selectPatient(patientId); applyMode(); switchTab('dashboard'); }
 }
 
 // ---------- tabs ----------
@@ -802,23 +785,15 @@ function switchTab(name) {
   document.querySelectorAll('section.tab').forEach(s => show(s, s.id === 'tab-' + name));
   if (name === 'daily') openDaily(dayDate);
   if (name === 'overview') renderOverview();
-  if (name === 'summary') renderSummary();
   if (name === 'dashboard') renderDashboard();
   if (name === 'compare') initCompare();
 }
 // show only the tabs that belong to the chosen view style
 function applyMode() {
-  $('viewMode').value = viewMode;
   document.querySelectorAll('#tabs button').forEach(b => show(b, !b.dataset.modes || b.dataset.modes.split(' ').includes(viewMode)));
   const cur = document.querySelector('#tabs button.active');
-  if (!cur || cur.classList.contains('hidden')) switchTab(viewMode === 'sleephq' ? 'dashboard' : viewMode === 'clarity' ? 'summary' : 'overview');
+  if (!cur || cur.classList.contains('hidden')) switchTab('dashboard');
 }
-$('viewMode').onchange = () => {
-  viewMode = $('viewMode').value; store.set('cpap_view', viewMode); showAllSignals = false;
-  applyMode();
-  const active = document.querySelector('#tabs button.active');
-  if (active) switchTab(active.dataset.tab);
-};
 $('tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) switchTab(b.dataset.tab); });
 
 // ---------- patients ----------
@@ -1774,25 +1749,6 @@ function buildReport(rows, p, appt, last, d) {
 
   return `<div id="reportCard" class="rep">${pages.join('')}</div>`;
 }
-
-// ---------- Summary (CPAP Clarity style): the therapy summary shown live, one scrolling report ----------
-let sumToken = 0;
-async function renderSummary() {
-  const out = $('sumOut'), tok = ++sumToken;
-  if (!patientId || !sessions.length) { out.innerHTML = '<div class="msg info">No data yet. Go to <b>Import SD card</b>.</div>'; return; }
-  const n = +$('sumRange').value, rows = n ? sessions.slice(-n) : sessions;
-  out.innerHTML = '<div class="card muted">Building summary…</div>';
-  const last = [...rows].reverse().find(r => r.usage_minutes > 0) || rows[rows.length - 1];
-  let d; try { d = await loadDay(last); } catch (e) { d = { series: null, events: [] }; }
-  if (tok !== sumToken) return;
-  out.innerHTML = buildReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }, '', last, d).replace('id="reportCard" ', '');
-}
-$('sumRange').onchange = renderSummary;
-$('sumPdf').onclick = () => {
-  const n = +$('sumRange').value, rows = n ? sessions.slice(-n) : sessions; if (!rows.length) return;
-  $('repFrom').value = rows[0].session_date; $('repTo').value = rows[rows.length - 1].session_date;
-  switchTab('report'); generateReport();
-};
 
 async function generateReport() {
   const from = $('repFrom').value, to = $('repTo').value, out = $('reportOut');
