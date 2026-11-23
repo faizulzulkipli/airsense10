@@ -24,6 +24,10 @@ Tab: **Dashboard, Daily, Compare, Import SD card, Report, Patients**. Tema kebir
 SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinspirasi oleh susun atur dan jenis ringkasan yang serupa, bukan salinan; skor dan pemerhatian dikira oleh aplikasi ini. Pemerhatian bukan nasihat perubatan.
 
 ## Tab Report (laporan klinik, boleh cetak / simpan PDF)
+Pada tab Report ada pilihan **Format**:
+- **Detailed report:** laporan 7 bahagian (di bawah).
+- **Compliance and therapy (AirView-style layout):** laporan klinik 3 halaman. Halaman 1: pesakit, peranti (model, no. siri, mod, jenis mask dan tiub), tetapan terapi, jadual **Usage** (hari guna, hari ≥ 4 jam, purata guna), **Events per hour** (AHI, AI, HI, OA/CA/UA/RERA) dan jadual **Pressure / Leak / pernafasan** (median, persentil ke-95, maksimum). Halaman 2: empat graf tren setiap malam (usage dengan garisan 4 jam, AHI dengan garisan 5, leak dengan garisan 24 L/min, tekanan). Halaman 3 dan seterusnya: jadual data harian. Ini susun atur gaya laporan klinik, **bukan dokumen rasmi ResMed AirView** dan tidak disahkan oleh ResMed. Jika anda ada contoh laporan AirView sebenar, susun atur boleh dipadankan lebih rapat.
+
 Pilih julat tarikh, tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas. Dalam PDF, footer setiap halaman dibuang dan halaman 1 muat sepenuhnya (termasuk tetapan terkini):
 1. **Therapy summary:** nama / tarikh lahir, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
 2. **Findings:** item WATCH / NOTE (lonjakan leak, kadar pernafasan di luar 12–20, AHI ≥ 5, di bawah 4 jam, apnea pusat dominan, sebaran tekanan, leak biasa di bawah 24), "What's going well", "Nights that stood out" dan **Questions for your doctor** yang dijana daripada item WATCH.
