@@ -13,14 +13,19 @@ Aplikasi web (static site) untuk membaca data kad SD ResMed AirSense 10.
 
 Saiz: kira-kira 20–30 KB satu malam, jadi 10 tahun ≈ 70–110 MB (had pelan percuma Supabase ialah 500 MB). Untuk lebih kecil, ubah `SERIES_STEP` di bahagian atas skrip `public/index.html` (2 = separuh saiz, 5 = satu perlima).
 
+## Tema dan graf Daily
+Tema kini kebiruan (cerah dan gelap mengikut tetapan peranti). Pada tab **Daily**, gerakkan tetikus pada mana-mana graf: satu garisan menegak muncul serentak pada semua graf (peristiwa, tekanan, leak, kadar pernafasan, isi padu, ventilasi, snore, flow limitation), dan di tajuk setiap graf nilai pada masa itu dipaparkan (cth. "15:04 · Mask 8.6 · EPR 7.0 · Target 7.0"). Apabila tetikus keluar, baris purata / P95 / maks malam itu dipaparkan semula. Pada skrin sentuh, seret jari pada graf.
+
 ## Skrin
 - **Overview:** trend guna, event/jam mengikut jenis (OA/CA/H/UA/RERA), tekanan, leak, kadar pernafasan, isi padu tidal, ventilasi minit, snore dan flow limitation.
 - **Daily:** seperti paparan harian OSCAR. Carta bersusun dengan paksi masa yang sama (peristiwa, tekanan + EPR + sasaran, leak, kadar pernafasan, isi padu tidal, ventilasi minit, snore, flow limitation), zum 4 jam / 2 jam / 1 jam / 30 minit dengan penggelongsor, pecahan peristiwa, tetapan mesin, statistik isyarat malam itu, dan senarai peristiwa. Butang ← → untuk malam sebelum/seterusnya.
 - **Statistics:** jadual Last night / 7 / 30 / 90 / 1 tahun / Semua (usaha, AHI, OA/CA/H/UA/RERA, RDI, tekanan, leak, pernafasan), serta jadual setiap malam dan eksport CSV.
 - **Report:** laporan boleh cetak / simpan PDF untuk doktor.
 
-## Dua gaya paparan (pilih di bahagian atas kanan)
-Pilihan **OSCAR style / SleepHQ style** diingat oleh browser. Data yang sama, cara analisis berbeza.
+## Tiga gaya paparan (pilih di bahagian atas kanan)
+Pilihan **OSCAR style / SleepHQ style / CPAP Clarity style** diingat oleh browser. Data yang sama, cara analisis berbeza.
+
+**CPAP Clarity style:** tab **Summary** memaparkan laporan terapi gaya CPAP Clarity terus di skrin (Therapy summary, Worth raising with your doctor, kepatuhan 4 jam / 70%, kad ringkasan, dapatan, taburan peristiwa, trend, log malam, kalendar 90 malam, tetapan mesin). Pilih tempoh 7 / 14 / 30 / 90 malam atau semua. Butang *Open as PDF report* membuka tab Report untuk dicetak. Tab Daily, Import, Report dan Patients kekal.
 
 | | OSCAR style | SleepHQ style |
 |---|---|---|

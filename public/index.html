@@ -9,11 +9,11 @@
 <script src="config.js"></script>
 <style>
 :root{
-  --bg:#f5f7fa; --card:#fff; --ink:#1c2430; --muted:#667085; --line:#e3e8ef;
-  --brand:#0f766e; --brand-ink:#fff; --warn:#b45309; --bad:#b42318; --good:#15803d;
+  --bg:#edf3fc; --card:#fff; --ink:#13233f; --muted:#5a6b88; --line:#d3dff2;
+  --brand:#1d4ed8; --brand-ink:#fff; --warn:#b45309; --bad:#b42318; --good:#15803d;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#10161d; --card:#18212b; --ink:#e6ebf1; --muted:#97a3b3; --line:#2a3644; --brand:#2dd4bf; --brand-ink:#06201d; }
+  :root{ --bg:#0a1325; --card:#101d36; --ink:#e3ebfa; --muted:#90a3c6; --line:#21365a; --brand:#60a5fa; --brand-ink:#061529; }
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column}
@@ -174,7 +174,9 @@ tr.click:hover{background:color-mix(in srgb,var(--brand) 8%,transparent)}
 .link{background:none;color:var(--brand);padding:0;font-weight:500;text-decoration:underline}
 .stackrow{border-top:1px solid var(--line);padding:4px 0}
 .stackrow:first-child{border-top:0}
-.stacktitle{font-size:12px;color:var(--muted);font-weight:600;margin:6px 0 0 2px}
+.stacktitle{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;font:600 10.5px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:8px 0 0 2px}
+.stacktitle .hv{font-weight:500;letter-spacing:.02em;text-transform:none;color:var(--ink);font-size:11.5px}
+.stacktitle .hv.live{color:var(--brand);font-weight:700}
 .dayctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dayctl input[type=date]{width:auto}
 .dayctl select{width:auto}
@@ -232,6 +234,7 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
       <select id="viewMode" aria-label="View style" title="View style" style="min-width:150px">
         <option value="oscar">OSCAR style</option>
         <option value="sleephq">SleepHQ style</option>
+        <option value="clarity">CPAP Clarity style</option>
       </select>
       <select id="patientSel" aria-label="Patient"></select>
       <span id="userEmail" class="muted"></span>
@@ -239,6 +242,7 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
     </div>
   </header>
   <nav id="tabs">
+    <button data-tab="summary" data-modes="clarity">Summary</button>
     <button data-tab="overview" data-modes="oscar" class="active">Overview</button>
     <button data-tab="dashboard" data-modes="sleephq">Dashboard</button>
     <button data-tab="daily">Daily</button>
@@ -250,6 +254,15 @@ summary{cursor:pointer;color:var(--muted);font-size:14px}
   </nav>
 
   <main>
+    <!-- Summary (CPAP Clarity style) -->
+    <section id="tab-summary" class="tab hidden">
+      <div class="card noprint"><div class="row">
+        <div style="max-width:220px"><label>Period</label><select id="sumRange"><option value="7">Last 7 nights</option><option value="14">Last 14 nights</option><option value="30" selected>Last 30 nights</option><option value="90">Last 90 nights</option><option value="0">All nights</option></select></div>
+        <div style="flex:0 0 auto"><button class="ghost" id="sumPdf">Open as PDF report</button></div>
+      </div></div>
+      <div id="sumOut"></div>
+    </section>
+
     <!-- Overview -->
     <section id="tab-overview" class="tab">
       <div class="card noprint">
@@ -706,16 +719,16 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { ret
 
 let sb = null, user = null, patients = [], patientId = null, sessions = [], pending = null;
 let dayDate = null, dayCache = {}, dayExt = [0, 480], dayChartIds = [];
-let viewMode = store.get('cpap_view') === 'sleephq' ? 'sleephq' : 'oscar', showAllSignals = false;
+let viewMode = ['sleephq', 'clarity'].includes(store.get('cpap_view')) ? store.get('cpap_view') : 'oscar', showAllSignals = false;
 const charts = {};
 
 const COLS = 'id,session_date,first_on,last_off,usage_minutes,mask_sessions,ahi,ai,hi,oai,cai,uai,leak_50,leak_95,leak_max,press_50,press_95,press_max,resp_rate_50,min_vent_50,oa_count,ca_count,h_count,ua_count,rera_count,csr_minutes,stats,settings';
 
 // signal and event styling
 const SIG = {
-  mp:  { n: 'Mask pressure', u: 'cmH₂O', c: '#dc2626' },
-  epr: { n: 'EPR pressure', u: 'cmH₂O', c: '#f59e0b' },
-  tp:  { n: 'Target pressure', u: 'cmH₂O', c: '#2563eb' },
+  mp:  { n: 'Mask pressure', u: 'cmH₂O', c: '#1d4ed8' },
+  epr: { n: 'EPR pressure', u: 'cmH₂O', c: '#38bdf8' },
+  tp:  { n: 'Target pressure', u: 'cmH₂O', c: '#0f766e' },
   lk:  { n: 'Leak', u: 'L/min', c: '#7c3aed' },
   rr:  { n: 'Respiratory rate', u: 'breaths/min', c: '#0891b2' },
   tv:  { n: 'Tidal volume', u: 'mL', c: '#16a34a' },
@@ -780,7 +793,7 @@ async function startApp() {
   await loadPatients();
   const today = new Date(), back = new Date(Date.now() - 89 * DAY_MS);
   $('repTo').value = today.toISOString().slice(0, 10); $('repFrom').value = back.toISOString().slice(0, 10);
-  if (!patients.length) { applyMode(); switchTab('patients'); } else { await selectPatient(patientId); applyMode(); switchTab(viewMode === 'sleephq' ? 'dashboard' : 'overview'); }
+  if (!patients.length) { applyMode(); switchTab('patients'); } else { await selectPatient(patientId); applyMode(); switchTab(viewMode === 'sleephq' ? 'dashboard' : viewMode === 'clarity' ? 'summary' : 'overview'); }
 }
 
 // ---------- tabs ----------
@@ -789,6 +802,7 @@ function switchTab(name) {
   document.querySelectorAll('section.tab').forEach(s => show(s, s.id === 'tab-' + name));
   if (name === 'daily') openDaily(dayDate);
   if (name === 'overview') renderOverview();
+  if (name === 'summary') renderSummary();
   if (name === 'dashboard') renderDashboard();
   if (name === 'compare') initCompare();
 }
@@ -797,7 +811,7 @@ function applyMode() {
   $('viewMode').value = viewMode;
   document.querySelectorAll('#tabs button').forEach(b => show(b, !b.dataset.modes || b.dataset.modes.split(' ').includes(viewMode)));
   const cur = document.querySelector('#tabs button.active');
-  if (!cur || cur.classList.contains('hidden')) switchTab(viewMode === 'sleephq' ? 'dashboard' : 'overview');
+  if (!cur || cur.classList.contains('hidden')) switchTab(viewMode === 'sleephq' ? 'dashboard' : viewMode === 'clarity' ? 'summary' : 'overview');
 }
 $('viewMode').onchange = () => {
   viewMode = $('viewMode').value; store.set('cpap_view', viewMode); showAllSignals = false;
@@ -1259,17 +1273,70 @@ function eventDatasets(events) {
 }
 function dayChart(id, datasets, yOpts, tip) {
   dayChartIds.push(id);
-  makeChart(id, { type: 'line', data: { datasets }, options: {
+  makeChart(id, { type: 'line', data: { datasets }, plugins: [crosshairPlugin], options: {
     responsive: true, maintainAspectRatio: false, animation: false, parsing: false, normalized: true,
     interaction: { mode: 'nearest', axis: 'x', intersect: false },
     plugins: { legend: { display: datasets.length > 1, position: 'top', align: 'start', labels: { boxWidth: 10, font: { size: 11 } } },
       tooltip: { callbacks: Object.assign({ title: items => items.length ? clock(items[0].parsed.x) : '' }, tip || {}) } },
     scales: { x: xScale(dayExt[0], dayExt[1]), y: Object.assign({ afterFit: s => { s.width = 58; } }, yOpts || {}) } } });
 }
-function stackRow(id, title, h) { return `<div class="stackrow"><div class="stacktitle">${title}</div><div class="chartbox" style="height:${h}px"><canvas id="${id}"></canvas></div></div>`; }
+// ---- shared crosshair: one mouse position drives a vertical line and a readout on every Daily chart ----
+let hoverX = null;
+const hvDefault = {};
+const SHORT = { 'Mask pressure': 'Mask', 'EPR pressure': 'EPR', 'Target pressure': 'Target' };
+function valueAt(data, x) {
+  let lo = 0, hi = data.length - 1, k = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (data[m].x <= x) { k = m; lo = m + 1; } else hi = m - 1; }
+  if (k < 0) return null; const p = data[k];
+  return p.y === null || p.y === undefined || x - p.x > 3 ? null : p.y;
+}
+function readoutFor(id, x) {
+  const c = charts[id]; if (!c) return '';
+  if (id === 'dcEv') {
+    for (const ds of c.data.datasets) for (let i = 0; i + 1 < ds.data.length; i += 3) { const a = ds.data[i], b = ds.data[i + 1]; if (x >= a.x - 0.2 && x <= b.x + 0.2) return `${clock(x)} · ${ds.label.split(' · ')[0]} ${num((b.x - a.x) * 60, 0)} s`; }
+    return `${clock(x)} · no event`;
+  }
+  const dss = c.data.datasets.filter(d => !/^Large leak/.test(d.label)), parts = dss.map(d => {
+    const v = valueAt(d.data, x), unit = (d.label.match(/\(([^)]*)\)/) || [])[1] || '', name = d.label.replace(/ \(.*$/, ''), dd = unit === 'mL' ? 0 : 1;
+    return dss.length > 1 ? `${SHORT[name] || name} ${v === null ? '–' : num(v, dd)}` : `${v === null ? '–' : num(v, dd)} ${unit}`;
+  });
+  return `${clock(x)} · ${parts.join(' · ')}`;
+}
+function setHover(x, src) {
+  hoverX = x;
+  for (const id of dayChartIds) {
+    const c = charts[id]; if (!c) continue;
+    if (!src || c !== src) c.draw();
+    const el = document.getElementById('hv_' + id);
+    if (el) { el.textContent = x === null ? (hvDefault[id] || '') : readoutFor(id, x); el.classList.toggle('live', x !== null); }
+  }
+}
+const crosshairPlugin = {
+  id: 'crosshair',
+  afterEvent(chart, args) {
+    if (!dayChartIds.includes(chart.canvas.id)) return;
+    const e = args.event, a = chart.chartArea; if (!a) return;
+    if (e.type === 'mouseout') { if (hoverX !== null) setHover(null, chart); args.changed = true; return; }
+    if (e.type !== 'mousemove') return;
+    const inside = e.x >= a.left && e.x <= a.right && e.y >= a.top && e.y <= a.bottom;
+    setHover(inside ? chart.scales.x.getValueForPixel(e.x) : null, chart); args.changed = true;
+  },
+  afterDraw(chart) {
+    if (hoverX === null || !dayChartIds.includes(chart.canvas.id)) return;
+    const a = chart.chartArea, x = chart.scales.x.getPixelForValue(hoverX); if (!a || x < a.left || x > a.right) return;
+    const ctx = chart.ctx; ctx.save(); ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom);
+    ctx.lineWidth = 1; ctx.strokeStyle = themeColors().brand; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.restore();
+  }
+};
+function statLine(r, k) {
+  const st = r.stats && r.stats[k]; if (!st) return '';
+  const dd = k === 'tv' ? 0 : (k === 'sn' || k === 'fl') ? 2 : 1, mid = k === 'lk' ? ['TYPICAL', st.p50] : ['AVG', st.avg];
+  return `${mid[0]} ${num(mid[1], dd)} · P95 ${num(st.p95, dd)} · MAX ${num(st.max, dd)}`;
+}
+function stackRow(id, title, h, def) { hvDefault[id] = def || ''; return `<div class="stackrow"><div class="stacktitle"><span>${title}</span><span class="hv" id="hv_${id}">${def || ''}</span></div><div class="chartbox" style="height:${h}px"><canvas id="${id}"></canvas></div></div>`; }
 
 function renderDay(r, d) {
-  dayChartIds.forEach(id => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }); dayChartIds = [];
+  dayChartIds.forEach(id => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }); dayChartIds = []; hoverX = null;
   if (charts.dcDonut) { charts.dcDonut.destroy(); delete charts.dcDonut; }
   const series = d.series, events = d.events, hrs = (r.usage_minutes || 0) / 60;
   const cnt = { OA: r.oa_count, CA: r.ca_count, H: r.h_count, UA: r.ua_count, RERA: r.rera_count };
@@ -1300,14 +1367,14 @@ function renderDay(r, d) {
   const hasP = series && ['mp', 'epr', 'tp'].some(k => series[k]);
   const full = viewMode !== 'sleephq' || showAllSignals;   // SleepHQ style shows events, pressure and leak first
   const rows = [];
-  if (events.length) rows.push(['dcEv', 'Events', 140]);
-  if (hasP) rows.push(['dcPr', 'Pressure (cmH₂O)', 170]);
-  for (const [k, id, h] of [['lk', 'dcLk', 140], ['rr', 'dcRr', 110], ['tv', 'dcTv', 110], ['mv', 'dcMv', 110], ['sn', 'dcSn', 90], ['fl', 'dcFl', 90]]) if (series && series[k] && (full || k === 'lk')) rows.push([id, `${SIG[k].n} (${SIG[k].u})`, h]);
+  if (events.length) rows.push(['dcEv', 'Events', 140, '']);
+  if (hasP) rows.push(['dcPr', 'Pressure (cmH₂O)', 170, statLine(r, 'mp')]);
+  for (const [k, id, h] of [['lk', 'dcLk', 140], ['rr', 'dcRr', 110], ['tv', 'dcTv', 110], ['mv', 'dcMv', 110], ['sn', 'dcSn', 90], ['fl', 'dcFl', 90]]) if (series && series[k] && (full || k === 'lk')) rows.push([id, `${SIG[k].n} (${SIG[k].u})`, h, statLine(r, k)]);
   html += `<div class="card noprint"><div class="dayctl"><span class="muted">View</span>
     <select id="dayWidth"><option value="0">Whole night</option><option value="240">4 hours</option><option value="120">2 hours</option><option value="60">1 hour</option><option value="30">30 minutes</option></select>
     <input type="range" id="daySlider" class="grow" step="1" disabled aria-label="Scroll through the night">
     ${viewMode === 'sleephq' ? `<button class="ghost" id="dayMore">${showAllSignals ? 'Show key signals only' : 'Show all signals'}</button>` : ''}</div></div>
-    <div class="card" id="dayStack">${rows.map(([id, t, h]) => stackRow(id, t, h)).join('')}</div>`;
+    <div class="card" id="dayStack">${rows.map(([id, t, h, def]) => stackRow(id, t, h, def)).join('')}</div>`;
   // per-signal statistics for the night
   const keys = Object.keys(SIG).filter(k => r.stats && r.stats[k]);
   if (keys.length) html += `<div class="card"><h3 style="margin-top:0">Signal statistics for this night</h3><div class="tablewrap"><table><tr><th>Signal</th><th class="num">Min</th><th class="num">Median</th><th class="num">90%</th><th class="num">95%</th><th class="num">Max</th><th class="num">Average</th></tr>
@@ -1707,6 +1774,25 @@ function buildReport(rows, p, appt, last, d) {
 
   return `<div id="reportCard" class="rep">${pages.join('')}</div>`;
 }
+
+// ---------- Summary (CPAP Clarity style): the therapy summary shown live, one scrolling report ----------
+let sumToken = 0;
+async function renderSummary() {
+  const out = $('sumOut'), tok = ++sumToken;
+  if (!patientId || !sessions.length) { out.innerHTML = '<div class="msg info">No data yet. Go to <b>Import SD card</b>.</div>'; return; }
+  const n = +$('sumRange').value, rows = n ? sessions.slice(-n) : sessions;
+  out.innerHTML = '<div class="card muted">Building summary…</div>';
+  const last = [...rows].reverse().find(r => r.usage_minutes > 0) || rows[rows.length - 1];
+  let d; try { d = await loadDay(last); } catch (e) { d = { series: null, events: [] }; }
+  if (tok !== sumToken) return;
+  out.innerHTML = buildReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }, '', last, d).replace('id="reportCard" ', '');
+}
+$('sumRange').onchange = renderSummary;
+$('sumPdf').onclick = () => {
+  const n = +$('sumRange').value, rows = n ? sessions.slice(-n) : sessions; if (!rows.length) return;
+  $('repFrom').value = rows[0].session_date; $('repTo').value = rows[rows.length - 1].session_date;
+  switchTab('report'); generateReport();
+};
 
 async function generateReport() {
   const from = $('repFrom').value, to = $('repTo').value, out = $('reportOut');
