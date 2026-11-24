@@ -26,7 +26,7 @@ SleepHQ ialah perkhidmatan berasingan dengan algoritma sendiri. Gaya ini terinsp
 ## Tab Report (laporan klinik, boleh cetak / simpan PDF)
 Pada tab Report ada pilihan **Format**:
 - **Detailed report:** laporan 7 bahagian (di bawah).
-- **Compliance and therapy (AirView-style layout):** laporan klinik 3 halaman. Halaman 1: pesakit, peranti (model, no. siri, mod, jenis mask dan tiub), tetapan terapi, jadual **Usage** (hari guna, hari ≥ 4 jam, purata guna), **Events per hour** (AHI, AI, HI, OA/CA/UA/RERA) dan jadual **Pressure / Leak / pernafasan** (median, persentil ke-95, maksimum). Halaman 2: empat graf tren setiap malam (usage dengan garisan 4 jam, AHI dengan garisan 5, leak dengan garisan 24 L/min, tekanan). Halaman 3 dan seterusnya: jadual data harian. Ini susun atur gaya laporan klinik, **bukan dokumen rasmi ResMed AirView** dan tidak disahkan oleh ResMed. Jika anda ada contoh laporan AirView sebenar, susun atur boleh dipadankan lebih rapat.
+- **Compliance and therapy (AirView-style layout):** laporan klinik 4 halaman, disusun mengikut contoh *AirView Report Guide* (Compliance Report, Therapy Report: CPAP/APAP, Detailed Report). Halaman 1 **Compliance Report:** pesakit (nama, ID, DOB, umur), jalur Usage (hari guna, ≥ 4 jam, < 4 jam, jam guna, purata dan median), jalur peranti (no. siri, mod, min/max tekanan, EPR, tahap EPR, jenis mask, tiub), jalur Therapy (tekanan, leak, AI/HI/AHI, Apnea Index tengah/obstruktif/tidak diketahui, Cheyne-Stokes) dan graf "Usage - hours" (hijau 4 jam atau lebih, merah kurang dari 4 jam). Halaman 2 **Therapy Report:** empat graf bertindan setiap malam (Usage, Leak persentil ke-95 dengan garisan 24 L/min, Pressure persentil ke-95, AHI bertindan AI dan HI) dengan panel statistik di kiri. Halaman 3 **Detailed Report:** malam terakhir (statistik, graf tekanan dengan garisan tetapan min/max, graf leak dengan garisan 24, garis masa peristiwa Hypopnea / Central / Obstructive / RERA / Unknown). Halaman 4: jadual data harian. Tiada SpO₂ kerana kita tiada data oksimetri. Ini **bukan dokumen rasmi ResMed AirView**, tiada logo ResMed, dan tidak disahkan oleh ResMed.
 
 Pilih julat tarikh, tekan **Generate**, kemudian **Print / Save as PDF**. Laporan ada 7 bahagian dan pecah halaman dengan kemas. Dalam PDF, footer setiap halaman dibuang dan halaman 1 muat sepenuhnya (termasuk tetapan terkini):
 1. **Therapy summary:** nama / tarikh lahir, berapa malam berturut-turut ≥ 4 jam dan AHI < 5, "Worth raising with your doctor", patuhan (nota Medicare 4 jam / 70%), kad ringkasan (AHI, patuhan, guna median, leak, tekanan avg/P95, kadar pernafasan, isi padu tidal, peristiwa dominan) dan tetapan terkini.
@@ -48,7 +48,7 @@ Laporan kini menyatakan **Mask type** (cth. "Nasal") di halaman 1, pada baris te
 
 ## Yang BELUM ada berbanding OSCAR
 - **Gelombang aliran (flow waveform, 25 Hz dari fail BRP):** tidak disimpan kerana satu malam ≈ 2 juta titik (beratus MB untuk setahun). Beritahu jika mahu pilihan "lihat gelombang aliran daripada kad SD tanpa simpan".
-- **Unintentional leak** (leak tolak ventilasi topeng): memerlukan profil topeng. Paparan ialah jumlah leak seperti di skrin mesin.
+- **Leak:** panduan AirView menyatakan nilai leak ResMed ialah *unintentional leak* (leak selepas ventilasi topeng ditolak). Aplikasi memaparkan nilai yang sama seperti di mesin; ia tidak mengira semula.
 - Oksimetri (SAD.edf), dan bar penanda peristiwa pada gelombang aliran.
 
 ## Struktur

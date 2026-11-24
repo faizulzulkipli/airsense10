@@ -109,6 +109,25 @@ button.cc{cursor:pointer}
 .tsblk{margin-top:14px}
 .tsst{display:flex;gap:20px;margin-top:4px}
 .dayreport{display:none}
+.avhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:6px 0 10px}
+.avt{font-size:26px;font-weight:300;letter-spacing:-.01em}
+.avpat{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;line-height:1.5;color:#333}
+.avpat b{font-size:13.5px;color:#000}
+.avband{display:flex;justify-content:space-between;align-items:center;background:#3f4348;color:#fff;padding:5px 10px;font-size:13px;margin-top:10px}
+.avband span:last-child{font-size:11px;opacity:.85}
+.avln{display:flex;justify-content:space-between;gap:16px;padding:4px 10px;border-bottom:1px solid #d9dde4;font-size:12.5px}
+.avln.in{padding-left:26px}.avln.in2{padding-left:42px}
+.avth{display:grid;grid-template-columns:1.5fr 1fr 1.2fr 1fr;gap:8px;padding:4px 10px;border-bottom:1px solid #d9dde4;font-size:12.5px}
+.avth span:not(:first-child){text-align:right}
+.avcap{font-weight:700;font-size:13px;margin:12px 0 2px}
+.avnote{font-size:11px;color:#5b6678;margin:6px 0 0;line-height:1.5}
+.avnote .sw{display:inline-block;width:10px;height:10px;vertical-align:-1px;margin-right:3px}
+.avnote .dot{display:inline-block;width:18px;border-top:1.5px dotted #444;vertical-align:3px}
+.avrow{display:grid;grid-template-columns:170px 1fr;gap:10px;margin-top:10px;padding-bottom:6px}
+.avstat{padding-top:20px;font-size:11.5px}
+.avs{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.avs.g b{color:#2f7d32}.avs.r b{color:#c0392b}.avs.y b{color:#a07800}.avs.b b{color:#3a53a4}.avs.p b{color:#6a3d92}.avs.p2 b{color:#9a73bd}
+.avct{font-weight:700;font-size:13px}.avct span{font-weight:400;font-size:10.5px;color:#5b6678}
 .rfoot{border-top:1px solid var(--line);margin-top:22px;padding-top:8px;font:10.5px ui-monospace,monospace;letter-spacing:.06em;color:var(--muted)}
 @page{size:A4;margin:9mm 11mm}
 @media print{
@@ -1752,92 +1771,165 @@ function buildReport(rows, p, appt, last, d) {
   return `<div id="reportCard" class="rep">${pages.join('')}</div>`;
 }
 
-// ---------- Compliance and therapy report (clinic layout in the style of ResMed AirView reports; not an official ResMed document) ----------
+// ---------- Clinic reports laid out like the compliance / therapy / detailed reports clinics know from ResMed AirView (not an official ResMed document) ----------
+const AV = { green: '#8cc084', red: '#d9534f', yellow: '#f2c230', blue: '#7f95d9', purple: '#8a5cb0', purple2: '#c8a9e3' };
 function nightChart(rows, o) {
-  const W = 740, H = o.h || 118, mL = 40, mR = 8, mT = 8, mB = 18, n = rows.length, pw = W - mL - mR, ph = H - mT - mB, y0 = o.y0 || 0, rg = (o.y1 - y0) || 1;
-  const X = i => mL + (n <= 1 ? pw / 2 : i / (n - 1) * pw), Y = v => mT + ph - (clamp(v, y0, o.y1) - y0) / rg * ph;
+  const W = 560, H = o.h || 130, mL = 30, mR = 6, mT = 8, mB = o.dayLabels ? 28 : 18, n = rows.length, pw = W - mL - mR, ph = H - mT - mB, y0 = o.y0 || 0, rg = (o.y1 - y0) || 1;
+  const slot = pw / Math.max(n, 1), cx = i => mL + slot * (i + 0.5), Y = v => mT + ph - (clamp(v, y0, o.y1) - y0) / rg * ph;
   let g = '';
-  [0, 0.5, 1].forEach(f => { const v = y0 + rg * f, y = Y(v); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#d5dbe5" stroke-width="0.7"/><text x="${mL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" font-family="ui-monospace,monospace" fill="#5b6678">${num(v, rg < 10 ? 1 : 0)}</text>`; });
-  if (o.bars) {
-    const slot = pw / Math.max(n, 1), bw = Math.max(1, slot * 0.72);
-    rows.forEach((r, i) => { const v = o.bars(r); if (!isN(v) || v <= 0) return; const x = mL + slot * i + (slot - bw) / 2, y = Y(v); g += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(mT + ph - y).toFixed(1)}" fill="${o.barColor ? o.barColor(r) : '#1e3a8a'}"/>`; });
-  }
+  const ticks = o.ticks || [0, 0.5, 1].map(f => y0 + rg * f);
+  ticks.forEach(v => { const y = Y(v); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#d9dde4" stroke-width="0.6"/><text x="${mL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="8.5" font-family="ui-monospace,monospace" fill="#5b6678">${num(v, rg < 10 ? 1 : 0)}</text>`; });
+  const bw = Math.max(1, slot * 0.78);
+  rows.forEach((r, i) => {
+    const x = cx(i) - bw / 2;
+    if (o.stack) { let acc = 0; o.stack.forEach(sg => { const v = sg.fn(r); if (!isN(v) || v <= 0) return; const ya = Y(acc + v), yb = Y(acc); g += `<rect x="${x.toFixed(1)}" y="${ya.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, yb - ya).toFixed(1)}" fill="${sg.color}"/>`; acc += v; }); }
+    else if (o.bars) { const v = o.bars(r); if (!isN(v) || v <= 0) return; const y = Y(v); g += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(mT + ph - y).toFixed(1)}" fill="${o.barColor ? o.barColor(r) : AV.blue}"/>`; }
+  });
   (o.lines || []).forEach(l => {
     let d = '', pen = false;
-    rows.forEach((r, i) => { const v = l.fn(r); if (!isN(v)) { pen = false; return; } d += `${pen ? 'L' : 'M'}${(o.bars ? mL + pw / Math.max(n, 1) * (i + 0.5) : X(i)).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
-    g += `<path d="${d}" fill="none" stroke="${l.color || '#1e3a8a'}" stroke-width="1.4" ${l.dash ? `stroke-dasharray="${l.dash}"` : ''}/>`;
+    rows.forEach((r, i) => { const v = l.fn(r); if (!isN(v)) { pen = false; return; } d += `${pen ? 'L' : 'M'}${cx(i).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
+    g += `<path d="${d}" fill="none" stroke="${l.color || '#222'}" stroke-width="1.2" ${l.dash ? `stroke-dasharray="${l.dash}"` : ''}/>`;
   });
-  if (isN(o.ref)) { const y = Y(o.ref); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#b42318" stroke-width="1" stroke-dasharray="5 3"/><text x="${W - mR}" y="${(y - 3).toFixed(1)}" text-anchor="end" font-size="9" font-family="ui-monospace,monospace" fill="#b42318" stroke="#fff" stroke-width="3" paint-order="stroke">${o.refLabel || ''}</text>`; }
-  const lab = (i, anchor) => `<text x="${(o.bars ? mL + pw / Math.max(n, 1) * (i + 0.5) : X(i)).toFixed(1)}" y="${H - 4}" text-anchor="${anchor}" font-size="9" font-family="ui-monospace,monospace" fill="#5b6678">${fMD(rows[i].session_date)}</text>`;
-  if (n) g += lab(0, 'start') + (n > 4 ? lab(n >> 1, 'middle') : '') + (n > 1 ? lab(n - 1, 'end') : '');
+  if (isN(o.ref)) { const y = Y(o.ref); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#444" stroke-width="0.9" stroke-dasharray="1.5 2.5"/>`; }
+  const dn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], every = Math.max(1, Math.ceil(n / 15));
+  rows.forEach((r, i) => {
+    const dt = new Date(r.session_date + 'T12:00:00Z'), wd = dt.getUTCDay(), x = cx(i).toFixed(1);
+    if (i % every === 0) g += `<text x="${x}" y="${H - (o.dayLabels ? 14 : 4)}" text-anchor="middle" font-size="8.5" font-family="ui-monospace,monospace" fill="#5b6678">${dt.getUTCDate()}</text>`;
+    if (o.dayLabels && n <= 62 && wd === 0) g += `<text x="${x}" y="${H - 3}" text-anchor="middle" font-size="7.5" font-family="ui-monospace,monospace" fill="#8a94a6">Sun</text>`;
+  });
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(o.label || '')}" style="display:block">${g}</svg>`;
 }
-function buildClinicReport(rows, p) {
+function ageAt(dob, ds) { if (!dob) return null; const a = new Date(dob + 'T12:00:00Z'), b = new Date(ds + 'T12:00:00Z'); let y = b.getUTCFullYear() - a.getUTCFullYear(); if (b.getUTCMonth() < a.getUTCMonth() || (b.getUTCMonth() === a.getUTCMonth() && b.getUTCDate() < a.getUTCDate())) y--; return y >= 0 && y < 130 ? y : null; }
+function timeChart(sr, vals, o) {
+  const W = 560, H = o.h || 104, mL = 30, mR = 6, mT = 6, mB = 16, pw = W - mL - mR, ph = H - mT - mB, x0 = sr.t[0], x1 = sr.t[sr.t.length - 1] + 1, y0 = o.y0 || 0, rg = (o.y1 - y0) || 1;
+  const X = m => mL + (m - x0) / ((x1 - x0) || 1) * pw, Y = v => mT + ph - (clamp(v, y0, o.y1) - y0) / rg * ph;
+  let g = '';
+  [0, 0.5, 1].forEach(f => { const v = y0 + rg * f, y = Y(v); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#d9dde4" stroke-width="0.6"/><text x="${mL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="8.5" font-family="ui-monospace,monospace" fill="#5b6678">${num(v, rg < 10 ? 1 : 0)}</text>`; });
+  (o.refs || []).forEach(rf => { const y = Y(rf.v); g += `<line x1="${mL}" x2="${W - mR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#222" stroke-width="0.9" stroke-dasharray="${rf.dash || '1.5 2.5'}"/>`; });
+  let d = '', pen = false;
+  vals.forEach((v, i) => { const t = sr.t[i]; if (!isN(v) || (i && t - sr.t[i - 1] > 5)) { pen = false; if (!isN(v)) return; } d += `${pen ? 'L' : 'M'}${X(t).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
+  g += `<path d="${d}" fill="none" stroke="${o.color || '#2547a8'}" stroke-width="1"/>`;
+  for (let i = 0; i <= 8; i++) { const m = x0 + (x1 - x0) * i / 8; g += `<text x="${X(m).toFixed(1)}" y="${H - 4}" text-anchor="${i === 8 ? 'end' : 'middle'}" font-size="8.5" font-family="ui-monospace,monospace" fill="#5b6678">${clock(m)}</text>`; }
+  return `<div class="avct">${o.title} <span>(${o.unit})</span></div><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(o.title)} through the night" style="display:block">${g}</svg>`;
+}
+function eventTimeline(d, last) {
+  const ex = (d && d.events) || [], sr = d && d.series, kinds = [['H', 'Hypopnea'], ['CA', 'Central'], ['OA', 'Obstructive'], ['RERA', 'RERA'], ['UA', 'Unknown']];
+  let x0, x1;
+  if (sr && sr.t && sr.t.length) { x0 = sr.t[0]; x1 = sr.t[sr.t.length - 1] + 1; }
+  else if (ex.length) { x0 = Math.min(...ex.map(e => e.onset_sec / 60)); x1 = Math.max(...ex.map(e => e.onset_sec / 60 + e.duration_sec / 60)) + 1; }
+  else return '<p class="muted small">No events were imported for this night.</p>';
+  const W = 560, mL = 70, mR = 6, rh = 18, H = kinds.length * rh + 20, pw = W - mL - mR, X = m => mL + (m - x0) / ((x1 - x0) || 1) * pw;
+  let g = '';
+  kinds.forEach(([k, name], i) => {
+    const y = 4 + i * rh;
+    g += `<line x1="${mL}" x2="${W - mR}" y1="${y + rh / 2}" y2="${y + rh / 2}" stroke="#e3e7ee" stroke-width="0.6"/><text x="${mL - 6}" y="${y + rh / 2 + 3}" text-anchor="end" font-size="9" font-family="system-ui,sans-serif" fill="#333">${name}</text>`;
+    ex.filter(e => eventKind(e.event_type) === k).forEach(e => { const x = X(e.onset_sec / 60), w = Math.max(1.2, e.duration_sec / 60 / ((x1 - x0) || 1) * pw); g += `<rect x="${x.toFixed(1)}" y="${y + 2}" width="${w.toFixed(1)}" height="${rh - 4}" fill="${e.duration_sec >= 10 ? '#1e3a8a' : '#6b86c9'}"/>`; });
+  });
+  for (let i = 0; i <= 8; i++) { const m = x0 + (x1 - x0) * i / 8; g += `<text x="${X(m).toFixed(1)}" y="${H - 4}" text-anchor="${i === 8 ? 'end' : 'middle'}" font-size="8.5" font-family="ui-monospace,monospace" fill="#5b6678">${clock(m)}</text>`; }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Events through the night" style="display:block">${g}</svg>`;
+}
+function buildClinicReport(rows, p, d, last) {
   const s = summarize(rows), n = rows.length, from = rows[0].session_date, to = rows[n - 1].session_date, model = p.device_model || 'AirSense 10';
+  const used = rows.filter(r => r.usage_minutes > 0);
   const lastSet = (([...rows].reverse().find(r => r.settings)) || {}).settings || null;
   let set = settingsView(lastSet); const mMask = set.find(x => x[0] === 'Mask Type');
   if (p.mask_type) { if (mMask) set = set.map(x => x[0] === 'Mask Type' ? ['Mask Type', p.mask_type] : x); else set.push(['Mask Type', p.mask_type]); }
-  const maskName = p.mask_type || (mMask ? mMask[1] : null), modeName = (set.find(x => x[0] === 'Therapy Mode') || [])[1];
-  const sub = `COMPLIANCE AND THERAPY REPORT · ${fShort(from).toUpperCase()} – ${fShort(to).toUpperCase()}`;
-  const medOf = fn => medianOf(rows.filter(r => r.usage_minutes > 0).map(fn));
-  const ge4 = s.ge4, lt4 = s.usedNights - ge4, noUse = n - s.usedNights, comp = s.ge4pct >= 70;
-  const row2 = (a, b) => `<tr><td>${a}</td><td class="num"><b>${b}</b></td></tr>`;
-  const t3 = (l, a, b, c) => `<tr><td>${l}</td><td class="num">${a}</td><td class="num">${b}</td><td class="num">${c}</td></tr>`;
+  const maskName = p.mask_type || (mMask ? mMask[1] : null), getS = k => (set.find(x => x[0] === k) || [])[1];
+  const modeName = getS('Therapy Mode') || '–', pr = getS('Pressure') || '', epr = getS('EPR') || '';
+  const prM = pr.match(/^([\d.]+) – ([\d.]+)/), prC = pr.match(/^([\d.]+) cmH/), eprM = epr.match(/^(?:(.*), )?Level (\d+)$/);
+  const devRows = [['Serial number', esc(p.device_serial || '–')], ['Mode', esc(modeName)]];
+  if (prM) devRows.push(['Min Pressure', `${prM[1]} cmH₂O`], ['Max Pressure', `${prM[2]} cmH₂O`]); else if (prC) devRows.push(['Set Pressure', `${prC[1]} cmH₂O`]);
+  devRows.push(['EPR', esc(!epr ? '–' : /^Off/.test(epr) ? 'Off' : eprM && eprM[1] ? eprM[1] : epr)], ['EPR level', esc(eprM ? eprM[2] : '–')], ['Mask type', esc(maskName || '–')]);
+  if (p.tube_type) devRows.push(['Tube', esc(p.tube_type)]);
+  const age = ageAt(p.date_of_birth, to), range = `${fMD(from)} – ${fShort(to)}`;
+  const sub = `${fShort(from).toUpperCase()} – ${fShort(to).toUpperCase()}`;
+  const hml = m => { const t = Math.round(m || 0); return `${Math.floor(t / 60)} hours ${t % 60} minutes`; };
+  const pct = (a, b) => b ? `${num(a / b * 100, 0)}%` : '–';
+  const medUse = medianOf(used.map(r => r.usage_minutes)), ge4 = s.ge4, lt4 = used.length - ge4, none = n - used.length;
+  const lk = (k, st, fb) => r => pick(r, k, st, fb);
+  const avgOf = fn => meanOf(used.map(fn));
   const f1 = v => num(v, 1), f2 = v => num(v, 2);
+  const csrSum = rows.filter(r => isN(r.csr_minutes)).reduce((a, r) => a + r.csr_minutes, 0), hasCsr = rows.some(r => isN(r.csr_minutes));
+  const csrTxt = hasCsr ? `${num(csrSum / (used.length || 1), 0)} minutes (${num(s.csrPct, 0)}%)` : '–';
+  const head = (title, sec) => `<div class="avhead"><div><div class="avt">${title}</div></div><div class="avpat"><b>${esc(p.full_name || '')}</b><b>${range}</b><span>Patient ID: ${esc(p.ic_or_ref || '–')}</span><span>DOB: ${esc(p.date_of_birth || '–')}${age !== null ? `</span><span>Age: ${age} years` : ''}</span></div></div>`;
+  const band = (l, r) => `<div class="avband"><span>${l}</span><span>${r || ''}</span></div>`;
+  const line = (l, v, cls) => `<div class="avln ${cls || ''}"><span>${l}</span><span>${v}</span></div>`;
   const pages = [];
-  pages.push(`<section class="rpage">${repHead(sub)}
-    <div class="rtop"><div><h1>Compliance and therapy report <span class="rtag">${plural(n, 'night').toUpperCase()}</span></h1></div></div>
-    <div class="two" style="margin-top:12px">
-      <div><div class="rsec"><h3>Patient</h3></div><table class="rtbl">${row2('Name', esc(p.full_name || ''))}${row2('ID / reference', esc(p.ic_or_ref || '–'))}${row2('Date of birth', esc(p.date_of_birth || '–'))}${row2('Report period', `${fShort(from)} – ${fShort(to)}`)}</table></div>
-      <div><div class="rsec"><h3>Device</h3></div><table class="rtbl">${row2('Model', esc(model))}${row2('Serial number', esc(p.device_serial || '–'))}${row2('Therapy mode', esc(modeName || '–'))}${row2('Mask type', esc(maskName || '–'))}${p.tube_type ? row2('Tube', esc(p.tube_type)) : ''}</table></div></div>
-    <div class="rsec" style="margin-top:12px"><h3>Therapy settings</h3><span class="cap">from the most recent night in this period</span></div>
-    ${set.length ? `<div class="setgrid">${set.filter(x => !['Therapy Mode', 'Mask Type', 'Tube'].includes(x[0])).map(([k, v]) => `<div><span class="muted">${esc(k)}</span> <b class="mono">${esc(v)}</b></div>`).join('')}</div>` : '<p class="muted small">No device settings were found in the imported data.</p>'}
-    <div class="two" style="margin-top:12px">
-      <div><div class="rsec"><h3>Usage</h3><span class="cap">${plural(n, 'night')}</span></div>
-        <table class="rtbl">
-          ${row2('Days with usage', `${s.usedNights} of ${n} (${num(n ? s.usedNights / n * 100 : 0, 0)}%)`)}
-          ${row2('Days with usage ≥ 4 hours', `${ge4} (${num(s.ge4pct, 0)}%)`)}
-          ${row2('Days with usage < 4 hours', `${lt4}`)}
-          ${row2('Days without usage', `${noUse}`)}
-          ${row2('Average usage, all days', hm(s.avgUsageMin))}
-          ${row2('Average usage, days used', hm(s.avgUsedMin))}
-          ${row2('Median usage, days used', hm(medOf(r => r.usage_minutes)))}
-          ${row2('Total usage', `${num(s.totalMin / 60, 0)} h`)}</table>
-        <p class="small"><b>${comp ? 'Meets' : 'Below'} the 70% mark:</b> ${num(s.ge4pct, 0)}% of nights at 4 hours or more. Medicare looks for 70% of nights in any 30 days in a row in the first 3 months of use (CMS LCD L33718); this report does not check the 30-day window.</p></div>
-      <div><div class="rsec"><h3>Events per hour</h3><span class="cap">usage-weighted</span></div>
-        <table class="rtbl">
-          ${row2('AHI', f1(s.ahi))}${row2('Apnea index (AI)', f1(s.ai))}${row2('Hypopnea index (HI)', f1(s.hi))}
-          ${row2('Obstructive apnea', f1(s.oaI))}${row2('Central apnea', f1(s.caI))}${row2('Unclassified apnea', f1(s.uaI))}${row2('RERA', f1(s.reraI))}</table>
-        <p class="small muted">AHI, AI and HI come from the machine's nightly summary. The per-type rows are counted events divided by therapy hours, so they need the event files (EVE) to be imported.</p></div></div>
-    <div class="rsec" style="margin-top:12px"><h3>Pressure, leak and breathing</h3><span class="cap">period values</span></div>
-    <table class="rtbl"><tr><th>Measure</th><th class="num">Median</th><th class="num">95th percentile</th><th class="num">Maximum</th></tr>
-      ${t3('Pressure <span class="cap">cmH₂O</span>', f1(s.mp50), f1(s.mp95), f1(s.mpMax))}
-      ${t3('Leak <span class="cap">L/min</span>', f1(s.lk50), f1(s.lk95), f1(s.lkMax))}
-      ${t3('Respiratory rate <span class="cap">breaths/min</span>', f1(s.rr50), '–', '–')}
-      ${t3('Tidal volume <span class="cap">mL</span>', num(s.tv50, 0), '–', '–')}
-      ${t3('Minute ventilation <span class="cap">L/min</span>', f1(s.mv50), '–', '–')}</table>
-    <p class="small muted">Median and 95th percentile are hours-weighted averages of each night's value; maximum is the highest night. ResMed uses 24 L/min as its mask-seal line; a comparison only.</p>
+
+  // ---- 1. Compliance report ----
+  pages.push(`<section class="rpage">${repHead(sub)}${head('Compliance Report')}
+    ${band('Usage', `${fShort(from)} – ${fShort(to)}`)}
+    ${line('<b>Usage days</b>', `<b>${used.length}/${n} days (${pct(used.length, n)})</b>`)}
+    ${line('<b>≥ 4 hours</b>', `<b>${ge4} days (${pct(ge4, n)})</b>`, 'in')}
+    ${line('<b>&lt; 4 hours</b>', `<b>${lt4} days (${pct(lt4, n)})</b>`, 'in')}
+    ${line('Usage hours', hml(s.totalMin))}
+    ${line('Average usage (total days)', hml(s.avgUsageMin), 'in2')}
+    ${line('Average usage (days used)', hml(s.avgUsedMin), 'in2')}
+    ${line('Median usage (days used)', medUse === null ? '–' : hml(medUse), 'in2')}
+    ${band(esc(model))}
+    ${devRows.map(([k, v]) => line(k, v)).join('')}
+    ${band('Therapy')}
+    <div class="avth"><span>Pressure - cmH₂O</span><span>Median: <b>${f1(s.mp50)}</b></span><span>95th percentile: <b>${f1(s.mp95)}</b></span><span>Maximum: <b>${f1(s.mpMax)}</b></span></div>
+    <div class="avth"><span>Leaks - L/min</span><span>Median: <b>${f1(s.lk50)}</b></span><span>95th percentile: <b>${f1(s.lk95)}</b></span><span>Maximum: <b>${f1(s.lkMax)}</b></span></div>
+    <div class="avth"><span>Events per hour</span><span>AI: <b>${f1(s.ai)}</b></span><span>HI: <b>${f1(s.hi)}</b></span><span>AHI: <b>${f1(s.ahi)}</b></span></div>
+    <div class="avth"><span>Apnea Index</span><span>Central: <b>${f1(s.caI)}</b></span><span>Obstructive: <b>${f1(s.oaI)}</b></span><span>Unknown: <b>${f1(s.uaI)}</b></span></div>
+    ${line('Cheyne-Stokes respiration (average duration per night)', `<b>${csrTxt}</b>`)}
+    <div class="avcap">Usage - hours</div>
+    ${nightChart(rows, { bars: r => (r.usage_minutes || 0) / 60, barColor: r => r.usage_minutes >= 240 ? AV.green : AV.red, y1: Math.max(8, Math.ceil(Math.max(0, ...rows.map(r => (r.usage_minutes || 0) / 60)))), ticks: [0, 2, 4, 6, 8].filter(v => v <= Math.max(8, Math.ceil(Math.max(0, ...rows.map(r => (r.usage_minutes || 0) / 60))))), ref: 4, dayLabels: true, h: 118, label: 'Usage hours per night' })}
+    <p class="avnote"><span class="sw" style="background:${AV.green}"></span> 4 hours or more &nbsp; <span class="sw" style="background:${AV.red}"></span> under 4 hours &nbsp; <span class="dot"></span> 4-hour compliance threshold. Percentile values are hours-weighted averages of each night's value.</p>
     ${repFoot}</section>`);
 
-  const hrs = r => (r.usage_minutes || 0) / 60, lk50 = r => pick(r, 'lk', 'p50', 'leak_50'), lk95 = r => pick(r, 'lk', 'p95', 'leak_95'), mp50 = r => pick(r, 'mp', 'p50', 'press_50'), mp95 = r => pick(r, 'mp', 'p95', 'press_95');
-  const mx = fn => Math.max(0, ...rows.map(fn).filter(isN));
-  const blk = (title, legend, svg, note) => `<div class="tsblk"><div class="rsec"><h3 style="margin:0">${title}</h3><span class="cap">${legend}</span></div>${svg}${note ? `<p class="small muted">${note}</p>` : ''}</div>`;
-  pages.push(`<section class="rpage">${repHead(sub)}
-    <div class="rsec"><h2>Trends over the period</h2><span class="cap">one point per night · ${fShort(from)} – ${fShort(to)}</span></div>
-    ${blk('Usage', 'HOURS PER NIGHT · DARK BARS 4 H OR MORE', nightChart(rows, { bars: hrs, barColor: r => r.usage_minutes >= 240 ? '#1e3a8a' : '#9db4e6', y1: Math.max(8, Math.ceil(mx(hrs))), ref: 4, refLabel: '4 h', label: 'Usage per night' }), 'Light bars are nights under 4 hours, the Medicare adherence line.')}
-    ${blk('AHI', 'EVENTS PER HOUR', nightChart(rows, { bars: r => r.ahi, y1: Math.max(10, Math.ceil(mx(r => r.ahi) / 5) * 5), ref: 5, refLabel: 'AHI 5', label: 'AHI per night' }), 'The line at 5 is the mark the AASM associates with well-controlled therapy.')}
-    ${blk('Leak', 'L/MIN · SOLID MEDIAN · DASHED 95TH PERCENTILE', nightChart(rows, { lines: [{ fn: lk50 }, { fn: lk95, dash: '4 3', color: '#5b6678' }], y1: Math.max(40, Math.ceil(mx(lk95) / 10) * 10), ref: 24, refLabel: '24 L/min', label: 'Leak per night' }), '')}
-    ${blk('Pressure', 'CMH₂O · SOLID MEDIAN · DASHED 95TH PERCENTILE', nightChart(rows, { lines: [{ fn: mp50 }, { fn: mp95, dash: '4 3', color: '#5b6678' }], y1: Math.max(8, Math.ceil(mx(mp95) + 1)), label: 'Pressure per night' }), '')}
+  // ---- 2. Therapy report: CPAP/APAP ----
+  const lkMax = r => pick(r, 'lk', 'max', 'leak_max'), lk95 = lk('lk', 'p95', 'leak_95'), lk50 = lk('lk', 'p50', 'leak_50'), mp95 = lk('mp', 'p95', 'press_95'), mp50 = lk('mp', 'p50', 'press_50'), mpMax = lk('mp', 'max', 'press_max');
+  const srow = (l, v, cls) => `<div class="avs ${cls || ''}"><span>${l}</span><b>${v}</b></div>`;
+  const chartRow = (title, unit, stats, svg) => `<div class="avrow"><div class="avstat">${stats}</div><div class="avchart"><div class="avct">${title} <span>(${unit})</span></div>${svg}</div></div>`;
+  const mxv = fn => Math.max(0, ...rows.map(fn).filter(isN));
+  const maxMean = fn => f1(avgOf(fn));
+  pages.push(`<section class="rpage">${repHead(sub)}${head('Therapy Report: CPAP/APAP')}
+    <div class="avband dark"><span>${esc(model)}</span><span>${p.device_serial ? 'SN: ' + esc(p.device_serial) : ''}</span></div>
+    ${chartRow('Usage', 'hours', srow('Usage days', `${used.length}/${n} (${pct(used.length, n)})`) + srow('≥ 4 hours days', `${ge4} (${pct(ge4, n)})`, 'g') + srow('&lt; 4 hours days', `${lt4} (${pct(lt4, n)})`, 'r') + srow('Days not used', `${none} (${pct(none, n)})`) + srow('Usage (avg)', num(s.avgUsageMin / 60, 1) + ' hrs'),
+      nightChart(rows, { bars: r => (r.usage_minutes || 0) / 60, barColor: r => r.usage_minutes >= 240 ? AV.green : AV.red, y1: Math.max(8, Math.ceil(mxv(r => (r.usage_minutes || 0) / 60))), ticks: [0, 2, 4, 6, 8], ref: 4, dayLabels: true, label: 'Usage hours' }))}
+    ${chartRow('Leak', 'L/min', srow('Set threshold', '24.0 L/min') + srow('Maximum (avg)', maxMean(lkMax)) + srow('95th % (avg)', maxMean(lk95), 'y') + srow('Median (avg)', maxMean(lk50), 'y'),
+      nightChart(rows, { bars: lk95, barColor: () => AV.yellow, lines: [{ fn: lk50, color: '#7a5d00' }], y1: Math.max(40, Math.ceil(mxv(lk95) / 20) * 20), ref: 24, dayLabels: true, label: 'Leak per night' }))}
+    ${chartRow('Pressure', 'cmH₂O', srow('Set mode', esc(modeName)) + (prM ? srow('Set Min Pressure', prM[1]) + srow('Set Max Pressure', prM[2]) : prC ? srow('Set Pressure', prC[1]) : '') + srow('Maximum (avg)', maxMean(mpMax)) + srow('95th % (avg)', maxMean(mp95), 'b') + srow('Median (avg)', maxMean(mp50), 'b'),
+      nightChart(rows, { bars: mp95, barColor: () => AV.blue, y1: Math.max(8, Math.ceil(mxv(mp95) / 4) * 4 + 2), dayLabels: true, label: 'Pressure per night (95th percentile)' }))}
+    ${chartRow('AHI', 'events/hour', srow('AHI (avg)', f1(s.ahi)) + srow('HI (avg)', f1(s.hi), 'p2') + srow('AI (avg)', f1(s.ai), 'p') + srow('CAI (avg)', f1(s.caI)) + srow('OAI (avg)', f1(s.oaI)) + srow('UAI (avg)', f1(s.uaI)) + srow('CSR % (avg)', hasCsr ? num(s.csrPct, 1) : '–'),
+      nightChart(rows, { stack: [{ fn: r => r.ai, color: AV.purple }, { fn: r => r.hi, color: AV.purple2 }], y1: Math.max(10, Math.ceil(mxv(r => (r.ai || 0) + (r.hi || 0)) / 5) * 5), ref: 5, dayLabels: true, label: 'AHI per night' }))}
+    <p class="avnote">Bars: usage green at 4 hours or more and red under 4; leak is the nightly 95th percentile with a line at the median and a dotted line at 24 L/min; pressure is the nightly 95th percentile; AHI is the nightly total with the apnea index (dark) and hypopnea index (light) stacked. Averages are across the nights shown.</p>
     ${repFoot}</section>`);
 
+  // ---- 3. Detailed report: most recent night ----
+  const lr = last || rows[n - 1], hrs = (lr.usage_minutes || 0) / 60, ex = (d && d.events) || [];
+  const idx = k => isN(lr[k + '_count']) && hrs ? num(lr[k + '_count'] / hrs, 1) : '–';
+  const sr = d && d.series, hasS = sr && sr.t && sr.t.length, mxs = k => Math.max(0, ...((sr && sr[k]) || []).filter(isN));
+  const ts = !hasS ? '<p class="muted small">No per-minute curves are stored for this night. Import the whole SD card (including DATALOG) to see them.</p>' :
+    (sr.mp ? timeChart(sr, sr.mp, { title: 'Pressure', unit: 'cmH₂O', y1: Math.max(8, Math.ceil((mxs('mp') + 0.5) / 2) * 2), refs: prM ? [{ v: +prM[1], dash: '4 3' }, { v: +prM[2], dash: '4 3' }] : prC ? [{ v: +prC[1], dash: '4 3' }] : [] }) : '') +
+    (sr.lk ? timeChart(sr, sr.lk, { title: 'Leak', unit: 'L/min', color: '#a07800', y1: Math.max(40, Math.ceil(mxs('lk') / 20) * 20), refs: [{ v: 24 }] }) : '');
+  pages.push(`<section class="rpage">${repHead(sub)}${head('Detailed Report')}
+    <div class="avband dark"><span>${esc(model)}</span><span>${fLong(lr.session_date)} · Night Profile</span></div>
+    ${line('Serial number', esc(p.device_serial || '–'))}${line('Mode / min - max pressure', esc(modeName + (prM ? ` / ${prM[1]} – ${prM[2]} cmH₂O` : prC ? ` / ${prC[1]} cmH₂O` : '')))}${line('EPR / level', esc(!epr ? '–' : /^Off/.test(epr) ? 'Off' : (eprM && eprM[1] ? eprM[1] : 'On') + ' / ' + (eprM ? eprM[2] : '–')))}
+    ${band('Statistics')}
+    ${line('Usage', `<b>${hml(lr.usage_minutes)}</b>`)}
+    <div class="avth"><span>Leak - L/min</span><span>Median: <b>${f1(lk50(lr))}</b></span><span>95th %: <b>${f1(lk95(lr))}</b></span><span>Maximum: <b>${f1(lkMax(lr))}</b></span></div>
+    <div class="avth"><span>Pressure - cmH₂O</span><span>Median: <b>${f1(mp50(lr))}</b></span><span>95th %: <b>${f1(mp95(lr))}</b></span><span>Maximum: <b>${f1(mpMax(lr))}</b></span></div>
+    <div class="avth"><span>Events per hour</span><span>AI: <b>${f1(lr.ai)}</b></span><span>HI: <b>${f1(lr.hi)}</b></span><span>AHI: <b>${f1(lr.ahi)}</b></span></div>
+    <div class="avth"><span>Event types per hour</span><span>Central: <b>${idx('ca')}</b></span><span>Obstructive: <b>${idx('oa')}</b></span><span>Unknown: <b>${idx('ua')}</b></span></div>
+    ${line('RERA index', `<b>${idx('rera')}</b>`)}
+    ${line('Cheyne-Stokes respiration (duration this night)', `<b>${isN(lr.csr_minutes) ? num(lr.csr_minutes, 0) + ' minutes' : '–'}</b>`)}
+    <div class="avrowd">${ts}</div>
+    <div class="avct" style="margin-top:8px">Events <span>(dark = 10 seconds or more; dotted line = 24 L/min leak threshold; dashed = set pressure)</span></div>
+    ${eventTimeline(d, lr)}
+    ${repFoot}</section>`);
+
+  // ---- 4. Daily data table ----
   const PER = 36, chunks = []; for (let i = 0; i < n; i += PER) chunks.push(rows.slice(i, i + PER));
   chunks.forEach((ch, ci) => {
     pages.push(`<section class="rpage">${repHead(sub)}
       <div class="rsec"><h2>Daily data${chunks.length > 1 ? ` (${ci + 1} of ${chunks.length})` : ''}</h2><span class="cap">oldest first</span></div>
       <table class="rtbl log"><tr><th>Date</th><th class="num">Usage</th><th class="num">AHI</th><th class="num">AI</th><th class="num">HI</th><th class="num">Leak 50%</th><th class="num">Leak 95%</th><th class="num">Press 50%</th><th class="num">Press 95%</th><th class="num">Press max</th></tr>
-      ${ch.map(r => `<tr><td><b>${fShort(r.session_date)}</b></td><td class="num ${r.usage_minutes > 0 && r.usage_minutes < 240 ? 'hot' : ''}">${r.usage_minutes > 0 ? hm(r.usage_minutes) : '–'}</td><td class="num ${isN(r.ahi) && r.ahi >= 5 ? 'hot' : ''}">${f1(r.ahi)}</td><td class="num">${f1(r.ai)}</td><td class="num">${f1(r.hi)}</td><td class="num">${f1(lk50(r))}</td><td class="num">${f1(lk95(r))}</td><td class="num">${f1(mp50(r))}</td><td class="num">${f1(mp95(r))}</td><td class="num">${f1(pick(r, 'mp', 'max', 'press_max'))}</td></tr>`).join('')}</table>
+      ${ch.map(r => `<tr><td><b>${fShort(r.session_date)}</b></td><td class="num ${r.usage_minutes > 0 && r.usage_minutes < 240 ? 'hot' : ''}">${r.usage_minutes > 0 ? hm(r.usage_minutes) : '–'}</td><td class="num ${isN(r.ahi) && r.ahi >= 5 ? 'hot' : ''}">${f1(r.ahi)}</td><td class="num">${f1(r.ai)}</td><td class="num">${f1(r.hi)}</td><td class="num">${f1(lk50(r))}</td><td class="num">${f1(lk95(r))}</td><td class="num">${f1(mp50(r))}</td><td class="num">${f1(mp95(r))}</td><td class="num">${f1(mpMax(r))}</td></tr>`).join('')}</table>
       ${ci === chunks.length - 1 ? `<p class="small muted">Usage under 4 hours and AHI of 5 or more are highlighted. A dash means no value was recorded.</p>
-      <p class="small" style="margin-top:16px;border-top:1px solid var(--ink);padding-top:10px;max-width:640px"><b>About this report.</b> MFZ CPAP Data Manager generates this report from SD-card data exported by the CPAP device. The layout follows the compliance and therapy reports clinics are used to seeing, but this is not an official ResMed AirView document and is not endorsed by ResMed. It is a data display tool, not a diagnosis, and does not replace advice from a doctor.</p>
+      <p class="small" style="margin-top:16px;border-top:1px solid var(--ink);padding-top:10px;max-width:640px"><b>About this report.</b> MFZ CPAP Data Manager generates this report from SD-card data exported by the CPAP device. The layout follows the compliance, therapy and detailed reports that clinics are used to seeing, but this is not an official ResMed AirView document and is not endorsed by ResMed. It is a data display tool, not a diagnosis, and does not replace advice from a doctor.</p>
       <p class="small mono">Generated ${fLong(new Date().toISOString().slice(0, 10))}</p>` : ''}
       ${repFoot}</section>`);
   });
@@ -1849,7 +1941,12 @@ async function generateReport() {
   if (!patientId) return;
   const rows = sessions.filter(r => (!from || r.session_date >= from) && (!to || r.session_date <= to));
   if (!rows.length) { out.innerHTML = '<div class="msg info">No nights in that period.</div>'; return; }
-  if ($('repFormat').value === 'clinic') { out.innerHTML = buildClinicReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }); return; }
+  if ($('repFormat').value === 'clinic') {
+    out.innerHTML = '<div class="card muted">Building report…</div>';
+    const lastC = [...rows].reverse().find(r => r.usage_minutes > 0) || rows[rows.length - 1];
+    let dc; try { dc = await loadDay(lastC); } catch (e) { dc = { series: null, events: [] }; }
+    out.innerHTML = buildClinicReport(rows, patients.find(x => x.id === patientId) || { full_name: '' }, dc, lastC); return;
+  }
   out.innerHTML = '<div class="card muted">Building report…</div>';
   const last = [...rows].reverse().find(r => r.usage_minutes > 0) || rows[rows.length - 1];
   let d; try { d = await loadDay(last); } catch (e) { d = { series: null, events: [] }; }
